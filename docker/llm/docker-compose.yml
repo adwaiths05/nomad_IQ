@@ -1,0 +1,13 @@
+services:
+  vllm:
+    image: vllm/vllm-openai:latest
+    container_name: nomadiq-vllm
+    ports:
+      - "8001:8000"
+    command: >
+      --model ${VLLM_MODEL_NAME}
+      --host 0.0.0.0
+      --port 8000
+    environment:
+      - HF_TOKEN=${HF_TOKEN}
+    shm_size: "8gb"

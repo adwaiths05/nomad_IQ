@@ -1,0 +1,10 @@
+services:
+  embeddings:
+    image: ghcr.io/huggingface/text-embeddings-inference:latest
+    container_name: nomadiq-embeddings
+    ports:
+      - "8002:80"
+    command: >
+      --model-id ${EMBEDDINGS_MODEL_NAME}
+      --pooling mean
+      --max-client-batch-size 64
