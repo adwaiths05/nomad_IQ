@@ -27,5 +27,5 @@ async def get_place_by_id(place_id: UUID, db: AsyncSession = Depends(get_db)) ->
 
 @router.post("/search", response_model=list[PlaceRead])
 async def search_places_endpoint(payload: PlaceSearchRequest, db: AsyncSession = Depends(get_db)) -> list[PlaceRead]:
-    rows = await search_places(db, payload.city, payload.category)
+    rows = await search_places(db, payload.city, payload.category, payload.productive_only)
     return [PlaceRead.model_validate(row) for row in rows]

@@ -1,4 +1,5 @@
 from datetime import date
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -12,6 +13,7 @@ class TripCreate(BaseModel):
     end_date: date
     budget_min: int
     budget_max: int
+    flexibility_level: Literal["strict", "moderate", "light"] = "moderate"
 
 
 class TripPatch(BaseModel):
@@ -20,6 +22,7 @@ class TripPatch(BaseModel):
     end_date: date | None = None
     budget_min: int | None = None
     budget_max: int | None = None
+    flexibility_level: Literal["strict", "moderate", "light"] | None = None
     status: str | None = None
 
 
@@ -34,6 +37,7 @@ class TripRead(BaseModel):
     end_date: date
     budget_min: int
     budget_max: int
+    flexibility_level: Literal["strict", "moderate", "light"]
     status: str
 
 

@@ -16,8 +16,11 @@ class PlaceRead(BaseModel):
     description: str | None
     avg_cost: int | None
     safety_rating: float | None
+    confidence_score: str
+    source_type: str
 
 
 class PlaceSearchRequest(BaseModel):
     city: str
     category: str | None = None
+    productive_only: bool = False

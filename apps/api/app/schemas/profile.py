@@ -13,6 +13,7 @@ class ProfileCreate(BaseModel):
     risk_tolerance: int = 5
     eco_level: int = 5
     remote_work: bool = False
+    remote_work_mode: bool = False
     work_start: time | None = None
     work_end: time | None = None
     event_interest: bool = False
@@ -25,6 +26,7 @@ class ProfileUpdate(BaseModel):
     risk_tolerance: int | None = None
     eco_level: int | None = None
     remote_work: bool | None = None
+    remote_work_mode: bool | None = None
     work_start: time | None = None
     work_end: time | None = None
     event_interest: bool | None = None
@@ -42,6 +44,7 @@ class ProfileRead(BaseModel):
     risk_tolerance: int
     eco_level: int
     remote_work: bool
+    remote_work_mode: bool
     work_start: time | None
     work_end: time | None
     event_interest: bool

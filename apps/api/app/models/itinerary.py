@@ -27,3 +27,5 @@ class ItineraryItem(Base):
     activity_type: Mapped[str] = mapped_column(String(80), nullable=False)
     travel_time_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     cost_estimate: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    confidence_score: Mapped[str] = mapped_column(String(20), nullable=False, default="low")
+    source_type: Mapped[str] = mapped_column(String(30), nullable=False, default="llm")

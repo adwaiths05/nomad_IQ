@@ -19,4 +19,5 @@ class Trip(Base):
     end_date: Mapped[date] = mapped_column(Date, nullable=False)
     budget_min: Mapped[int] = mapped_column(Integer, nullable=False)
     budget_max: Mapped[int] = mapped_column(Integer, nullable=False)
+    flexibility_level: Mapped[str] = mapped_column(String(30), nullable=False, default="moderate")
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="draft")

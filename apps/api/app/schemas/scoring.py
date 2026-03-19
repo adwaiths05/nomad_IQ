@@ -21,5 +21,8 @@ class ScoreRead(BaseModel):
     lighting_score: float
     uniqueness_score: float
     total_score: float
+    trend_boost: float
+    confidence_score: str
+    source_type: str
     best_time: str | None
     explanation: str | None

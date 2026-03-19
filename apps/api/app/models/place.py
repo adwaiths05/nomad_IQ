@@ -21,6 +21,8 @@ class Place(Base):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     avg_cost: Mapped[int | None] = mapped_column(Integer, nullable=True)
     safety_rating: Mapped[float | None] = mapped_column(Float, nullable=True)
+    confidence_score: Mapped[str] = mapped_column(String(20), nullable=False, default="low")
+    source_type: Mapped[str] = mapped_column(String(30), nullable=False, default="llm")
 
 
 class PlaceEmbedding(Base):

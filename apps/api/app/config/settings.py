@@ -27,6 +27,34 @@ class Settings(BaseSettings):
     embeddings_model_name: str = Field(...)
     embeddings_api_key: str | None = None
 
+    redis_url: str = "redis://redis:6379/0"
+
+    exchange_rate_api_key: str | None = None
+    exchange_rate_base_url: str = "https://v6.exchangerate-api.com/v6"
+
+    google_places_api_key: str | None = None
+    google_places_base_url: str = "https://maps.googleapis.com/maps/api/place"
+
+    google_routes_api_key: str | None = None
+    google_routes_base_url: str = "https://routes.googleapis.com"
+
+    openweather_api_key: str | None = None
+    openweather_base_url: str = "https://api.openweathermap.org/data/2.5"
+
+    ticketmaster_api_key: str | None = None
+    ticketmaster_base_url: str = "https://app.ticketmaster.com/discovery/v2"
+
+    amadeus_api_key: str | None = None
+    amadeus_api_secret: str | None = None
+    amadeus_base_url: str = "https://test.api.amadeus.com"
+
+    climatiq_api_key: str | None = None
+    climatiq_base_url: str = "https://api.climatiq.io"
+
+    apify_api_token: str | None = None
+    apify_base_url: str = "https://api.apify.com/v2"
+    numbeo_apify_actor_id: str | None = None
+
 
 @lru_cache
 def get_settings() -> Settings:

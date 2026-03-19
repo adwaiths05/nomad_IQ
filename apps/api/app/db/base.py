@@ -8,6 +8,7 @@ class Base(DeclarativeBase):
 # Import models so metadata includes all tables.
 from app.models.auth import AuthSession  # noqa: E402,F401
 from app.models.budget import BudgetEstimate  # noqa: E402,F401
+from app.models.cost_of_living import CityCostBaseline  # noqa: E402,F401
 from app.models.environment import EnvironmentalScore  # noqa: E402,F401
 from app.models.event import Event  # noqa: E402,F401
 from app.models.explanation import Explanation  # noqa: E402,F401

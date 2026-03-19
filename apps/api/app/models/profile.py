@@ -20,6 +20,7 @@ class TravelerProfile(Base):
     risk_tolerance: Mapped[int] = mapped_column(Integer, nullable=False, default=5)
     eco_level: Mapped[int] = mapped_column(Integer, nullable=False, default=5)
     remote_work: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    remote_work_mode: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     work_start: Mapped[time | None] = mapped_column(Time, nullable=True)
     work_end: Mapped[time | None] = mapped_column(Time, nullable=True)
     event_interest: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

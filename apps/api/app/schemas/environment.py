@@ -6,6 +6,8 @@ from pydantic import BaseModel, ConfigDict
 
 class EnvironmentEvaluateRequest(BaseModel):
     trip_id: UUID
+    route_distance_km: float | None = None
+    transit_mode: str = "passenger_train"
 
 
 class EnvironmentRead(BaseModel):

@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies.db import get_db
 from app.schemas.event import EventRead
-from app.services.event_service import get_event, list_events
+from app.services.event_service import get_event, list_events, sync_trip_events
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -13,6 +13,12 @@ router = APIRouter(prefix="/events", tags=["events"])
 @router.get("", response_model=list[EventRead])
 async def get_events(db: AsyncSession = Depends(get_db)) -> list[EventRead]:
     rows = await list_events(db)
+    return [EventRead.model_validate(row) for row in rows]
+
+
+@router.post("/sync/{trip_id}", response_model=list[EventRead])
+async def sync_events_for_trip(trip_id: UUID, db: AsyncSession = Depends(get_db)) -> list[EventRead]:
+    rows = await sync_trip_events(db, str(trip_id))
     return [EventRead.model_validate(row) for row in rows]
 
 

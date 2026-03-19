@@ -12,7 +12,12 @@ router = APIRouter(tags=["environment"])
 
 @router.post("/environment/evaluate", response_model=EnvironmentRead)
 async def evaluate_environment_endpoint(payload: EnvironmentEvaluateRequest, db: AsyncSession = Depends(get_db)) -> EnvironmentRead:
-    row = await evaluate_environment(db, str(payload.trip_id))
+    row = await evaluate_environment(
+        db,
+        str(payload.trip_id),
+        route_distance_km=payload.route_distance_km,
+        transit_mode=payload.transit_mode,
+    )
     return EnvironmentRead.model_validate(row)
 
 
