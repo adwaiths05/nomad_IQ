@@ -3,6 +3,7 @@ from app.integrations.external_apis import (
     ClimatiqClient,
     ExchangeRateClient,
     GooglePlacesClient,
+    GoogleRoutesClient,
     OpenWeatherClient,
     TicketmasterClient,
     fetch_amadeus_safety_score,
@@ -12,6 +13,7 @@ from app.integrations.external_apis import (
 __all__ = [
     "ExchangeRateClient",
     "GooglePlacesClient",
+    "GoogleRoutesClient",
     "TicketmasterClient",
     "OpenWeatherClient",
     "ClimatiqClient",

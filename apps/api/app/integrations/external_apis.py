@@ -157,6 +157,66 @@ class GooglePlacesClient:
         return rows
 
 
+class GoogleRoutesClient:
+    def __init__(self) -> None:
+        self.settings = get_settings()
+
+    async def transit_duration_minutes(
+        self,
+        origin_lat: float,
+        origin_lng: float,
+        destination_lat: float,
+        destination_lng: float,
+    ) -> int | None:
+        if not self.settings.google_routes_api_key:
+            return None
+
+        url = f"{self.settings.google_routes_base_url}/directions/v2:computeRoutes"
+        headers = {
+            "X-Goog-Api-Key": self.settings.google_routes_api_key,
+            "X-Goog-FieldMask": "routes.duration",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "origin": {
+                "location": {
+                    "latLng": {
+                        "latitude": origin_lat,
+                        "longitude": origin_lng,
+                    }
+                }
+            },
+            "destination": {
+                "location": {
+                    "latLng": {
+                        "latitude": destination_lat,
+                        "longitude": destination_lng,
+                    }
+                }
+            },
+            "travelMode": "TRANSIT",
+            "routingPreference": "TRAFFIC_AWARE",
+        }
+
+        async with httpx.AsyncClient(timeout=20) as client:
+            response = await client.post(url, headers=headers, json=payload)
+            if response.status_code >= 400:
+                return None
+            data = response.json()
+
+        routes = data.get("routes", [])
+        if not routes:
+            return None
+        duration = routes[0].get("duration")
+        if not isinstance(duration, str) or not duration.endswith("s"):
+            return None
+        try:
+            seconds = int(float(duration[:-1]))
+        except ValueError:
+            return None
+        return max(int(round(seconds / 60)), 1)
+
+
 class TicketmasterClient:
     cache_ttl_seconds = 24 * 60 * 60
 

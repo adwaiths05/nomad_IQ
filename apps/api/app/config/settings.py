@@ -1,6 +1,17 @@
 from functools import lru_cache
+import importlib
 from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_pydantic_settings = importlib.util.find_spec("pydantic_settings")
+if _pydantic_settings is not None:
+    _settings_module = importlib.import_module("pydantic_settings")
+    BaseSettings = _settings_module.BaseSettings
+    SettingsConfigDict = _settings_module.SettingsConfigDict
+else:
+    from pydantic.v1 import BaseSettings
+
+    class SettingsConfigDict(dict):
+        pass
 
 
 class Settings(BaseSettings):

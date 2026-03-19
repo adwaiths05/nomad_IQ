@@ -100,6 +100,12 @@ async def _build_budget_breakdown(db: AsyncSession, trip: Trip, days: int) -> tu
     breakdown = {
         "currency": budget_currency,
         "city_baseline_currency": baseline.currency,
+        "city_baseline_daily": {
+            "lodging": float(baseline.daily_lodging),
+            "food": float(baseline.daily_food),
+            "activities": float(baseline.daily_activities),
+            "transport": float(baseline.daily_transport),
+        },
         "lodging": int(round(baseline.daily_lodging * days)),
         "food": int(round(baseline.daily_food * days)),
         "activities": int(round(baseline.daily_activities * days)),
@@ -151,7 +157,12 @@ async def update_budget(db: AsyncSession, trip_id: str, actual_spent: int) -> Bu
 
     budget.actual_spent = actual_spent
     pressure = budget_pressure(actual_spent=actual_spent, estimated_total=budget.estimated_total)
-    alternatives = suggest_cheaper_alternatives(pressure, city=str(trip.city))
+    baseline_daily = budget.breakdown.get("city_baseline_daily") if isinstance(budget.breakdown, dict) else None
+    alternatives = suggest_cheaper_alternatives(
+        pressure,
+        city=str(trip.city),
+        baseline_daily=baseline_daily if isinstance(baseline_daily, dict) else None,
+    )
     budget.breakdown = {
         **budget.breakdown,
         "budget_pressure": pressure,
@@ -175,7 +186,12 @@ async def optimize_budget(db: AsyncSession, trip_id: str) -> BudgetEstimate:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Trip not found")
 
     pressure = budget_pressure(actual_spent=budget.actual_spent, estimated_total=budget.estimated_total)
-    alternatives = suggest_cheaper_alternatives(pressure, city=str(trip.city))
+    baseline_daily = budget.breakdown.get("city_baseline_daily") if isinstance(budget.breakdown, dict) else None
+    alternatives = suggest_cheaper_alternatives(
+        pressure,
+        city=str(trip.city),
+        baseline_daily=baseline_daily if isinstance(baseline_daily, dict) else None,
+    )
     budget.breakdown = {
         **budget.breakdown,
         "budget_pressure": pressure,
