@@ -40,32 +40,25 @@ class Settings(BaseSettings):
 
     redis_url: str = "redis://redis:6379/0"
 
-    exchange_rate_api_key: str | None = None
-    exchange_rate_base_url: str = "https://v6.exchangerate-api.com/v6"
+    mcp_enabled: bool = True
+    mcp_auth_token: str | None = None
 
-    google_places_api_key: str | None = None
-    google_places_base_url: str = "https://maps.googleapis.com/maps/api/place"
+    # Server URLs for MCP wrappers (FastMCP or compatible HTTP frontends).
+    mcp_google_maps_server_url: str | None = None
+    mcp_composio_server_url: str | None = None
+    mcp_custom_server_url: str | None = None
 
-    google_routes_api_key: str | None = None
-    google_routes_base_url: str = "https://routes.googleapis.com"
-
-    openweather_api_key: str | None = None
-    openweather_base_url: str = "https://api.openweathermap.org/data/2.5"
-
-    ticketmaster_api_key: str | None = None
-    ticketmaster_base_url: str = "https://app.ticketmaster.com/discovery/v2"
-
-    amadeus_api_key: str | None = None
-    amadeus_api_secret: str | None = None
-    amadeus_base_url: str = "https://test.api.amadeus.com"
-
-    climatiq_api_key: str | None = None
-    climatiq_base_url: str = "https://api.climatiq.io"
-
-    apify_api_token: str | None = None
-    apify_base_url: str = "https://api.apify.com/v2"
-    numbeo_apify_actor_id: str | None = None
-
+    # Tool mappings for each domain integration.
+    mcp_tool_google_places_city: str = "google_places_city_productive_spots"
+    mcp_tool_google_places_nearby: str = "google_places_nearby_productive_spots"
+    mcp_tool_google_routes_transit: str = "google_routes_transit_duration_minutes"
+    mcp_tool_ticketmaster_events: str = "ticketmaster_search_events"
+    mcp_tool_openweather_forecast: str = "openweather_five_day_forecast"
+    mcp_tool_exchange_rates: str = "exchange_rate_get_rates"
+    mcp_tool_numbeo_baseline: str = "numbeo_city_baseline"
+    mcp_tool_amadeus_safety: str = "amadeus_safety_score"
+    mcp_tool_climatiq_emissions: str = "climatiq_estimate_route_emissions"
+    mcp_tool_rag_enrich_context: str = "rag_enrich_plan_context"
 
 @lru_cache
 def get_settings() -> Settings:

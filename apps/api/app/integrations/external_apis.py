@@ -1,9 +1,8 @@
 from datetime import date
 from typing import Any
 
-import httpx
-
 from app.config.settings import get_settings
+from app.integrations.mcp_client import FastMCPClient
 
 
 class ExchangeRateClient:
@@ -12,17 +11,16 @@ class ExchangeRateClient:
 
     def __init__(self) -> None:
         self.settings = get_settings()
+        self.mcp = FastMCPClient()
 
     async def get_rates(self, base_currency: str) -> dict[str, Any] | None:
-        if not self.settings.exchange_rate_api_key:
-            return None
-
-        url = f"{self.settings.exchange_rate_base_url}/{self.settings.exchange_rate_api_key}/latest/{base_currency.upper()}"
-        async with httpx.AsyncClient(timeout=20) as client:
-            response = await client.get(url)
-            if response.status_code >= 400:
-                return None
-            return response.json()
+        result = await self.mcp.call_tool(
+            server_url=self.settings.mcp_custom_server_url,
+            tool_name=self.settings.mcp_tool_exchange_rates,
+            arguments={"base_currency": base_currency.upper()},
+            timeout_seconds=20,
+        )
+        return result if isinstance(result, dict) else None
 
 
 class GooglePlacesClient:
@@ -31,6 +29,7 @@ class GooglePlacesClient:
 
     def __init__(self) -> None:
         self.settings = get_settings()
+        self.mcp = FastMCPClient()
 
     async def nearby_productive_spots(
         self,
@@ -39,127 +38,36 @@ class GooglePlacesClient:
         radius_meters: int = 1500,
         max_results: int = 5,
     ) -> list[dict[str, Any]]:
-        if not self.settings.google_places_api_key:
-            return []
-
-        query = (
-            "quiet library OR quiet cafe OR coworking space OR study cafe "
-            "with low busyness and productive atmosphere"
+        result = await self.mcp.call_tool(
+            server_url=self.settings.mcp_google_maps_server_url,
+            tool_name=self.settings.mcp_tool_google_places_nearby,
+            arguments={
+                "latitude": latitude,
+                "longitude": longitude,
+                "radius_meters": radius_meters,
+                "max_results": max_results,
+            },
+            timeout_seconds=20,
         )
-        url = f"{self.settings.google_places_base_url}/textsearch/json"
-        params = {
-            "query": query,
-            "location": f"{latitude},{longitude}",
-            "radius": radius_meters,
-            "key": self.settings.google_places_api_key,
-        }
-
-        async with httpx.AsyncClient(timeout=20) as client:
-            response = await client.get(url, params=params)
-            if response.status_code >= 400:
-                return []
-            data = response.json()
-
-        rows: list[dict[str, Any]] = []
-        for item in data.get("results", [])[:max_results]:
-            rating = float(item.get("rating") or 0)
-            if rating < 4.2:
-                continue
-
-            types = [t.lower() for t in item.get("types", [])]
-            tags = []
-            if "library" in types:
-                tags.append("library")
-            if "cafe" in types:
-                tags.append("quiet cafe")
-            if "coworking_space" in types or "point_of_interest" in types:
-                tags.append("coworking")
-
-            # Places API text search does not always expose amenities; keep a conservative wifi heuristic.
-            name_l = str(item.get("name") or "").lower()
-            has_wifi = (
-                "wifi" in name_l
-                or "co-work" in name_l
-                or "cowork" in name_l
-                or "library" in types
-                or "cafe" in types
-            )
-            if not has_wifi:
-                continue
-
-            rows.append(
-                {
-                    "name": item.get("name"),
-                    "rating": rating,
-                    "user_ratings_total": item.get("user_ratings_total"),
-                    "open_now": item.get("opening_hours", {}).get("open_now"),
-                    "latitude": item.get("geometry", {}).get("location", {}).get("lat"),
-                    "longitude": item.get("geometry", {}).get("location", {}).get("lng"),
-                    "types": types,
-                    "productive_tags": tags or ["quiet cafe"],
-                    "has_wifi": has_wifi,
-                }
-            )
-        return rows
+        return result if isinstance(result, list) else []
 
     async def city_productive_spots(self, city: str, max_results: int = 10) -> list[dict[str, Any]]:
-        if not self.settings.google_places_api_key:
-            return []
-
-        query = f"library OR cafe quiet study work friendly in {city}"
-        url = f"{self.settings.google_places_base_url}/textsearch/json"
-        params = {
-            "query": query,
-            "key": self.settings.google_places_api_key,
-        }
-
-        async with httpx.AsyncClient(timeout=20) as client:
-            response = await client.get(url, params=params)
-            if response.status_code >= 400:
-                return []
-            data = response.json()
-
-        rows: list[dict[str, Any]] = []
-        for item in data.get("results", [])[:max_results]:
-            rating = float(item.get("rating") or 0)
-            if rating < 4.2:
-                continue
-
-            types = [t.lower() for t in item.get("types", [])]
-            if not ("library" in types or "cafe" in types or "coworking_space" in types):
-                continue
-
-            name_l = str(item.get("name") or "").lower()
-            has_wifi = (
-                "wifi" in name_l
-                or "co-work" in name_l
-                or "cowork" in name_l
-                or "library" in types
-                or "cafe" in types
-            )
-            if not has_wifi:
-                continue
-
-            rows.append(
-                {
-                    "name": item.get("name"),
-                    "rating": rating,
-                    "open_now": item.get("opening_hours", {}).get("open_now"),
-                    "latitude": item.get("geometry", {}).get("location", {}).get("lat"),
-                    "longitude": item.get("geometry", {}).get("location", {}).get("lng"),
-                    "types": types,
-                    "productive_tags": [
-                        "library" if "library" in types else "quiet cafe",
-                    ],
-                    "has_wifi": has_wifi,
-                }
-            )
-        return rows
+        result = await self.mcp.call_tool(
+            server_url=self.settings.mcp_google_maps_server_url,
+            tool_name=self.settings.mcp_tool_google_places_city,
+            arguments={
+                "city": city,
+                "max_results": max_results,
+            },
+            timeout_seconds=20,
+        )
+        return result if isinstance(result, list) else []
 
 
 class GoogleRoutesClient:
     def __init__(self) -> None:
         self.settings = get_settings()
+        self.mcp = FastMCPClient()
 
     async def transit_duration_minutes(
         self,
@@ -168,53 +76,27 @@ class GoogleRoutesClient:
         destination_lat: float,
         destination_lng: float,
     ) -> int | None:
-        if not self.settings.google_routes_api_key:
-            return None
-
-        url = f"{self.settings.google_routes_base_url}/directions/v2:computeRoutes"
-        headers = {
-            "X-Goog-Api-Key": self.settings.google_routes_api_key,
-            "X-Goog-FieldMask": "routes.duration",
-            "Content-Type": "application/json",
-        }
-        payload = {
-            "origin": {
-                "location": {
-                    "latLng": {
-                        "latitude": origin_lat,
-                        "longitude": origin_lng,
-                    }
-                }
+        result = await self.mcp.call_tool(
+            server_url=self.settings.mcp_google_maps_server_url,
+            tool_name=self.settings.mcp_tool_google_routes_transit,
+            arguments={
+                "origin_lat": origin_lat,
+                "origin_lng": origin_lng,
+                "destination_lat": destination_lat,
+                "destination_lng": destination_lng,
             },
-            "destination": {
-                "location": {
-                    "latLng": {
-                        "latitude": destination_lat,
-                        "longitude": destination_lng,
-                    }
-                }
-            },
-            "travelMode": "TRANSIT",
-            "routingPreference": "TRAFFIC_AWARE",
-        }
+            timeout_seconds=20,
+        )
 
-        async with httpx.AsyncClient(timeout=20) as client:
-            response = await client.post(url, headers=headers, json=payload)
-            if response.status_code >= 400:
-                return None
-            data = response.json()
-
-        routes = data.get("routes", [])
-        if not routes:
-            return None
-        duration = routes[0].get("duration")
-        if not isinstance(duration, str) or not duration.endswith("s"):
-            return None
-        try:
-            seconds = int(float(duration[:-1]))
-        except ValueError:
-            return None
-        return max(int(round(seconds / 60)), 1)
+        if isinstance(result, int):
+            return max(result, 1)
+        if isinstance(result, float):
+            return max(int(round(result)), 1)
+        if isinstance(result, dict):
+            minutes = result.get("minutes")
+            if isinstance(minutes, (int, float)):
+                return max(int(round(minutes)), 1)
+        return None
 
 
 class TicketmasterClient:
@@ -222,45 +104,21 @@ class TicketmasterClient:
 
     def __init__(self) -> None:
         self.settings = get_settings()
+        self.mcp = FastMCPClient()
 
     async def search_events(self, city: str, start_date: date, end_date: date, limit: int = 20) -> list[dict[str, Any]]:
-        if not self.settings.ticketmaster_api_key:
-            return []
-
-        url = f"{self.settings.ticketmaster_base_url}/events.json"
-        params = {
-            "apikey": self.settings.ticketmaster_api_key,
-            "city": city,
-            "startDateTime": f"{start_date.isoformat()}T00:00:00Z",
-            "endDateTime": f"{end_date.isoformat()}T23:59:59Z",
-            "size": limit,
-            "sort": "date,asc",
-        }
-
-        async with httpx.AsyncClient(timeout=20) as client:
-            response = await client.get(url, params=params)
-            if response.status_code >= 400:
-                return []
-            data = response.json()
-
-        items = data.get("_embedded", {}).get("events", [])
-        rows: list[dict[str, Any]] = []
-        for event in items:
-            venues = event.get("_embedded", {}).get("venues", [])
-            venue_name = venues[0].get("name") if venues else None
-            rows.append(
-                {
-                    "name": event.get("name", "Event"),
-                    "venue": venue_name,
-                    "category": event.get("classifications", [{}])[0].get("segment", {}).get("name", "general"),
-                    "description": event.get("info") or event.get("pleaseNote"),
-                    "start_date": (event.get("dates", {}).get("start", {}).get("localDate") or start_date.isoformat()),
-                    "end_date": (event.get("dates", {}).get("end", {}).get("localDate") or event.get("dates", {}).get("start", {}).get("localDate") or start_date.isoformat()),
-                    "popularity": float(event.get("promoter", {}).get("id", 0) or 0),
-                    "source": "ticketmaster",
-                }
-            )
-        return rows
+        result = await self.mcp.call_tool(
+            server_url=self.settings.mcp_composio_server_url,
+            tool_name=self.settings.mcp_tool_ticketmaster_events,
+            arguments={
+                "city": city,
+                "start_date": start_date.isoformat(),
+                "end_date": end_date.isoformat(),
+                "limit": limit,
+            },
+            timeout_seconds=20,
+        )
+        return result if isinstance(result, list) else []
 
 
 class OpenWeatherClient:
@@ -268,23 +126,16 @@ class OpenWeatherClient:
 
     def __init__(self) -> None:
         self.settings = get_settings()
+        self.mcp = FastMCPClient()
 
     async def five_day_forecast(self, city: str) -> dict[str, Any] | None:
-        if not self.settings.openweather_api_key:
-            return None
-
-        url = f"{self.settings.openweather_base_url}/forecast"
-        params = {
-            "q": city,
-            "appid": self.settings.openweather_api_key,
-            "units": "metric",
-        }
-
-        async with httpx.AsyncClient(timeout=20) as client:
-            response = await client.get(url, params=params)
-            if response.status_code >= 400:
-                return None
-            return response.json()
+        result = await self.mcp.call_tool(
+            server_url=self.settings.mcp_composio_server_url,
+            tool_name=self.settings.mcp_tool_openweather_forecast,
+            arguments={"city": city},
+            timeout_seconds=20,
+        )
+        return result if isinstance(result, dict) else None
 
 
 class ClimatiqClient:
@@ -293,52 +144,40 @@ class ClimatiqClient:
 
     def __init__(self) -> None:
         self.settings = get_settings()
+        self.mcp = FastMCPClient()
 
     async def estimate_route_emissions(
         self,
         distance_km: float,
         mode: str = "passenger_train",
     ) -> dict[str, Any] | None:
-        if not self.settings.climatiq_api_key:
-            return None
-
-        url = f"{self.settings.climatiq_base_url}/data/v1/estimate"
-        headers = {
-            "Authorization": f"Bearer {self.settings.climatiq_api_key}",
-            "Content-Type": "application/json",
-        }
-        payload = {
-            "emission_factor": {"activity_id": mode, "data_version": "^21"},
-            "parameters": {"distance": distance_km, "distance_unit": "km"},
-        }
-
-        async with httpx.AsyncClient(timeout=20) as client:
-            response = await client.post(url, headers=headers, json=payload)
-            if response.status_code >= 400:
-                return None
-            return response.json()
+        result = await self.mcp.call_tool(
+            server_url=self.settings.mcp_custom_server_url,
+            tool_name=self.settings.mcp_tool_climatiq_emissions,
+            arguments={
+                "distance_km": distance_km,
+                "mode": mode,
+            },
+            timeout_seconds=20,
+        )
+        return result if isinstance(result, dict) else None
 
 
 async def fetch_numbeo_city_baseline(city: str) -> dict[str, Any] | None:
     settings = get_settings()
-    if not settings.apify_api_token or not settings.numbeo_apify_actor_id:
+    result = await FastMCPClient().call_tool(
+        server_url=settings.mcp_composio_server_url,
+        tool_name=settings.mcp_tool_numbeo_baseline,
+        arguments={"city": city},
+        timeout_seconds=60,
+    )
+    if result is None:
         return None
 
-    # This endpoint triggers/reads an Apify run output for Numbeo-like cost data.
-    url = f"{settings.apify_base_url}/acts/{settings.numbeo_apify_actor_id}/run-sync-get-dataset-items"
-    params = {"token": settings.apify_api_token}
-    payload = {"city": city}
-
-    async with httpx.AsyncClient(timeout=60) as client:
-        response = await client.post(url, params=params, json=payload)
-        if response.status_code >= 400:
-            return None
-        rows = response.json()
-
-    if not rows:
+    top = result[0] if isinstance(result, list) and result else result
+    if not isinstance(top, dict):
         return None
 
-    top = rows[0] if isinstance(rows, list) else rows
     return {
         "city": city,
         "currency": top.get("currency", "USD"),
@@ -353,46 +192,30 @@ async def fetch_numbeo_city_baseline(city: str) -> dict[str, Any] | None:
 
 async def fetch_amadeus_safety_score(latitude: float, longitude: float) -> dict[str, Any] | None:
     settings = get_settings()
-    if not settings.amadeus_api_key or not settings.amadeus_api_secret:
+    result = await FastMCPClient().call_tool(
+        server_url=settings.mcp_custom_server_url,
+        tool_name=settings.mcp_tool_amadeus_safety,
+        arguments={
+            "latitude": latitude,
+            "longitude": longitude,
+        },
+        timeout_seconds=20,
+    )
+    if not isinstance(result, dict):
         return None
 
-    token_url = f"{settings.amadeus_base_url}/v1/security/oauth2/token"
-    score_url = f"{settings.amadeus_base_url}/v1/safety/safety-rated-locations"
-
-    async with httpx.AsyncClient(timeout=20) as client:
-        token_response = await client.post(
-            token_url,
-            data={
-                "grant_type": "client_credentials",
-                "client_id": settings.amadeus_api_key,
-                "client_secret": settings.amadeus_api_secret,
-            },
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-        )
-        if token_response.status_code >= 400:
-            return None
-
-        token = token_response.json().get("access_token")
-        if not token:
-            return None
-
-        score_response = await client.get(
-            score_url,
-            headers={"Authorization": f"Bearer {token}"},
-            params={"latitude": latitude, "longitude": longitude},
-        )
-        if score_response.status_code >= 400:
-            return None
-
-        data = score_response.json().get("data", [])
-        if not data:
-            return None
-
-        safety_scores = data[0].get("safetyScores", {})
-        values = [float(v) for v in safety_scores.values() if isinstance(v, (int, float))]
-        total = round(sum(values) / len(values), 2) if values else None
+    if "score" in result and "scores" in result:
         return {
-            "score": total,
-            "scores": safety_scores,
-            "source": "amadeus",
+            "score": result.get("score"),
+            "scores": result.get("scores") or {},
+            "source": result.get("source") or "amadeus_mcp",
         }
+
+    safety_scores = result.get("safetyScores") if isinstance(result.get("safetyScores"), dict) else {}
+    values = [float(v) for v in safety_scores.values() if isinstance(v, (int, float))]
+    total = round(sum(values) / len(values), 2) if values else None
+    return {
+        "score": total,
+        "scores": safety_scores,
+        "source": "amadeus_mcp",
+    }

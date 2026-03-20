@@ -21,7 +21,7 @@ AI-powered trip planning monorepo.
 
 ## Backend Setup
 
-1. Copy `apps/api/.env.example` values into your runtime environment.
+1. Copy `.env.example` values into your runtime environment.
 2. Install dependencies:
 
 ```bash
@@ -69,3 +69,4 @@ docker compose up -d --build
   - `EMBEDDINGS_BASE_URL`
   - `EMBEDDINGS_MODEL_NAME`
 - API keys are not generated in code.
+- External providers are consumed via MCP servers (Google Maps, Composio-based providers, and custom FastMCP wrappers).
