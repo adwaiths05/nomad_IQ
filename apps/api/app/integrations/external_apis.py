@@ -5,6 +5,12 @@ from app.config.settings import get_settings
 from app.integrations.mcp_client import FastMCPClient
 
 
+def _parse_aliases(csv_value: str | None) -> list[str]:
+    if not csv_value:
+        return []
+    return [chunk.strip() for chunk in csv_value.split(",") if chunk.strip()]
+
+
 class ExchangeRateClient:
     # Exchange rates are fetched every 12h and cached in Redis.
     cache_ttl_seconds = 12 * 60 * 60
@@ -41,6 +47,7 @@ class GooglePlacesClient:
         result = await self.mcp.call_tool(
             server_url=self.settings.mcp_google_maps_server_url,
             tool_name=self.settings.mcp_tool_google_places_nearby,
+            tool_aliases=_parse_aliases(self.settings.mcp_tool_google_places_nearby_aliases),
             arguments={
                 "latitude": latitude,
                 "longitude": longitude,
@@ -55,6 +62,7 @@ class GooglePlacesClient:
         result = await self.mcp.call_tool(
             server_url=self.settings.mcp_google_maps_server_url,
             tool_name=self.settings.mcp_tool_google_places_city,
+            tool_aliases=_parse_aliases(self.settings.mcp_tool_google_places_city_aliases),
             arguments={
                 "city": city,
                 "max_results": max_results,
@@ -79,6 +87,7 @@ class GoogleRoutesClient:
         result = await self.mcp.call_tool(
             server_url=self.settings.mcp_google_maps_server_url,
             tool_name=self.settings.mcp_tool_google_routes_transit,
+            tool_aliases=_parse_aliases(self.settings.mcp_tool_google_routes_transit_aliases),
             arguments={
                 "origin_lat": origin_lat,
                 "origin_lng": origin_lng,
@@ -110,6 +119,7 @@ class TicketmasterClient:
         result = await self.mcp.call_tool(
             server_url=self.settings.mcp_composio_server_url,
             tool_name=self.settings.mcp_tool_ticketmaster_events,
+            tool_aliases=_parse_aliases(self.settings.mcp_tool_ticketmaster_events_aliases),
             arguments={
                 "city": city,
                 "start_date": start_date.isoformat(),
@@ -132,6 +142,7 @@ class OpenWeatherClient:
         result = await self.mcp.call_tool(
             server_url=self.settings.mcp_composio_server_url,
             tool_name=self.settings.mcp_tool_openweather_forecast,
+            tool_aliases=_parse_aliases(self.settings.mcp_tool_openweather_forecast_aliases),
             arguments={"city": city},
             timeout_seconds=20,
         )

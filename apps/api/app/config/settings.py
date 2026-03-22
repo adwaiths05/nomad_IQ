@@ -60,6 +60,13 @@ class Settings(BaseSettings):
     mcp_tool_climatiq_emissions: str = "climatiq_estimate_route_emissions"
     mcp_tool_rag_enrich_context: str = "rag_enrich_plan_context"
 
+    # Optional comma-separated fallback aliases to support provider-specific naming.
+    mcp_tool_google_places_city_aliases: str = "GOOGLE_MAPS_TEXT_SEARCH"
+    mcp_tool_google_places_nearby_aliases: str = "GOOGLE_MAPS_TEXT_SEARCH"
+    mcp_tool_google_routes_transit_aliases: str = "GOOGLE_MAPS_DISTANCE_MATRIX_API"
+    mcp_tool_ticketmaster_events_aliases: str = "TICKETMASTER_GET_EVENTS"
+    mcp_tool_openweather_forecast_aliases: str = "OPENWEATHER_API_GET_CURRENT_WEATHER"
+
 @lru_cache
 def get_settings() -> Settings:
     return Settings()

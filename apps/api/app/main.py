@@ -12,6 +12,7 @@ from app.routes import (
     events,
     explain,
     groups,
+    integrations,
     itinerary,
     memory,
     places,
@@ -42,6 +43,7 @@ app.include_router(budget.router)
 app.include_router(weather.router)
 app.include_router(environment.router)
 app.include_router(explain.router)
+app.include_router(integrations.router)
 
 
 @app.get("/health")
