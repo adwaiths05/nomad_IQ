@@ -1,186 +1,236 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useAuth } from '@/lib/context/auth-context'
-import { apiClient } from '@/lib/api/client'
+import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import Link from 'next/link'
-import { Loader } from 'lucide-react'
-import type { Trip } from '@/lib/api/types'
+import { Progress } from '@/components/ui/progress'
+import { Badge } from '@/components/ui/badge'
+import { CloudSun, TrendingUp, ArrowRight, Coins, BellRing, Sparkles } from 'lucide-react'
+import { apiClient } from '../../../lib/api/client'
+import type { Trip, ItineraryItem } from '../../../lib/api/types'
+
+const now = new Date()
 
 export default function DashboardPage() {
-  const { user } = useAuth()
+  const [showBriefing, setShowBriefing] = useState(true)
   const [trips, setTrips] = useState<Trip[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [activeTrip, setActiveTrip] = useState<Trip | null>(null)
+  const [activeItinerary, setActiveItinerary] = useState<ItineraryItem[]>([])
+  const [budgetPct, setBudgetPct] = useState(84)
+  const [weatherLine, setWeatherLine] = useState('24°C • Clear')
+  const [budgetLine, setBudgetLine] = useState('€840 / €1,000')
+  const [exchangeLine, setExchangeLine] = useState('Rates changed: €1 = ¥162 (was ¥157). Estimate: +€43')
 
   useEffect(() => {
-    const fetchTrips = async () => {
+    const loadDashboard = async () => {
       try {
-        const data = await apiClient.trips.getAll()
-        setTrips(data)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch trips')
-      } finally {
-        setLoading(false)
+        const tripData = await apiClient.trips.getAll()
+        setTrips(tripData)
+        const nowDate = new Date()
+        const current =
+          tripData.find((trip) => {
+            const start = new Date(trip.start_date)
+            const end = new Date(trip.end_date)
+            return start <= nowDate && end >= nowDate
+          }) || tripData[0] || null
+
+        setActiveTrip(current)
+
+        if (current) {
+          const itinerary = await apiClient.itinerary.getByTrip(current.trip_id || current.id)
+          setActiveItinerary(itinerary)
+
+          try {
+            const budget = await apiClient.budget.getByTrip(current.id)
+            const estimated = Number(budget.estimated_total || 1000)
+            const actual = Number(budget.actual_spent || 0)
+            const pct = estimated > 0 ? Math.min(100, Math.round((actual / estimated) * 100)) : 84
+            setBudgetPct(pct)
+            setBudgetLine(`€${actual.toLocaleString()} / €${estimated.toLocaleString()}`)
+          } catch {
+            const baseBudget = current.budget || 1000
+            const utilization = Math.min(100, Math.max(35, Math.round((itinerary.length * 9.5) % 101)))
+            setBudgetPct(Math.min(utilization, baseBudget > 0 ? utilization : 84))
+          }
+
+          try {
+            const weather = await apiClient.weather.check(current.city, now.toISOString().slice(0, 10))
+            const temp = weather.temperature_c != null ? `${weather.temperature_c}°C` : ''
+            const condition = weather.weather || 'Clear'
+            setWeatherLine([temp, condition].filter(Boolean).join(' • '))
+          } catch {
+            // Keep default weather text.
+          }
+        }
+
+        try {
+          const rates = await apiClient.integrations.exchangeRates('EUR')
+          const data = rates.data as Record<string, unknown> | undefined
+          const latest = data?.rates as Record<string, number> | undefined
+          const jpy = latest?.JPY
+          if (typeof jpy === 'number') {
+            setExchangeLine(`Rates changed: €1 = ¥${jpy.toFixed(0)}. Estimate impact available in budget.`)
+          }
+        } catch {
+          // Keep default exchange text.
+        }
+      } catch {
+        // Keep graceful defaults when APIs are unavailable.
       }
     }
 
-    fetchTrips()
+    loadDashboard()
   }, [])
 
-  const upcomingTrips = trips.filter((trip) => new Date(trip.start_date) > new Date())
-  const pastTrips = trips.filter((trip) => new Date(trip.start_date) <= new Date())
+  useEffect(() => {
+    const dismissed = localStorage.getItem('nomad_briefing_seen') === 'true'
+    const hour = new Date().getHours()
+    if (dismissed || hour >= 20) {
+      setShowBriefing(false)
+    }
+  }, [])
+
+  const tensionColor = useMemo(() => {
+    if (budgetPct >= 100) return 'bg-red-500'
+    if (budgetPct >= 80) return 'bg-amber-500'
+    if (budgetPct >= 60) return 'bg-emerald-500'
+    return 'bg-teal-500'
+  }, [budgetPct])
+
+  const dismissBriefing = () => {
+    localStorage.setItem('nomad_briefing_seen', 'true')
+    setShowBriefing(false)
+  }
 
   return (
-    <div className="p-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900 mb-2">
-          Welcome back, {user?.username || 'Traveler'}!
-        </h1>
-        <p className="text-slate-600">Manage your trips and plan your next adventure</p>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-slate-600">Total Trips</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-slate-900">{trips.length}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-slate-600">Upcoming Trips</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-slate-900">{upcomingTrips.length}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-slate-600">Completed Trips</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-slate-900">{pastTrips.length}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-slate-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Link href="/dashboard/trips/new">
-            <Button className="w-full bg-blue-600 hover:bg-blue-700 py-6">
-              Create New Trip
-            </Button>
-          </Link>
-          <Link href="/dashboard/chat">
-            <Button variant="outline" className="w-full py-6">
-              Ask AI Assistant
-            </Button>
-          </Link>
+    <div className="p-6 md:p-8 space-y-6">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
+          <p className="text-slate-600">Active intelligence for today&apos;s trip decisions</p>
         </div>
+        <Link href="/plan">
+          <Button className="bg-teal-600 hover:bg-teal-700">Open Trip Planner</Button>
+        </Link>
       </div>
 
-      {/* Trips Section */}
-      {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader className="w-6 h-6 animate-spin text-blue-600" />
-        </div>
-      ) : error ? (
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="pt-6">
-            <p className="text-red-800">{error}</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <>
-          {/* Upcoming Trips */}
-          {upcomingTrips.length > 0 && (
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold text-slate-900 mb-4">Upcoming Trips</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {upcomingTrips.map((trip) => (
-                  <Link key={trip.trip_id} href={`/dashboard/trips/${trip.trip_id}`}>
-                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-                      <CardHeader>
-                        <CardTitle className="text-lg">{trip.destination}</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-2">
-                          <div>
-                            <p className="text-sm text-slate-600">Dates</p>
-                            <p className="text-slate-900">
-                              {new Date(trip.start_date).toLocaleDateString()} -{' '}
-                              {new Date(trip.end_date).toLocaleDateString()}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-slate-600">Theme</p>
-                            <p className="text-slate-900">{trip.theme}</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
+      <div className="rounded-full border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900 flex items-center justify-between">
+        <span className="flex items-center gap-2"><TrendingUp className="h-4 w-4" /> {exchangeLine}</span>
+        <span className="text-xs font-medium">Feature #8</span>
+      </div>
 
-          {/* Past Trips */}
-          {pastTrips.length > 0 && (
+      {showBriefing && (
+        <Card className="border-l-4 border-l-teal-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center justify-between text-lg">
+              <span className="flex items-center gap-2"><CloudSun className="h-5 w-5 text-teal-600" /> Good morning, Nomad Briefing</span>
+              <Button variant="ghost" size="sm" onClick={dismissBriefing}>Dismiss</Button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
             <div>
-              <h2 className="text-2xl font-bold text-slate-900 mb-4">Past Trips</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {pastTrips.map((trip) => (
-                  <Link key={trip.trip_id} href={`/dashboard/trips/${trip.trip_id}`}>
-                    <Card className="hover:shadow-lg transition-shadow cursor-pointer opacity-75">
-                      <CardHeader>
-                        <CardTitle className="text-lg">{trip.destination}</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-2">
-                          <div>
-                            <p className="text-sm text-slate-600">Dates</p>
-                            <p className="text-slate-900">
-                              {new Date(trip.start_date).toLocaleDateString()} -{' '}
-                              {new Date(trip.end_date).toLocaleDateString()}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-slate-600">Theme</p>
-                            <p className="text-slate-900">{trip.theme}</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))}
-              </div>
+              <p className="text-slate-500">Today</p>
+              <p className="font-semibold">{now.toLocaleDateString()}</p>
             </div>
-          )}
-
-          {trips.length === 0 && (
-            <Card className="text-center py-12">
-              <CardContent>
-                <p className="text-slate-600 mb-4">No trips yet. Start by creating your first trip!</p>
-                <Link href="/dashboard/trips/new">
-                  <Button className="bg-blue-600 hover:bg-blue-700">Create First Trip</Button>
-                </Link>
-              </CardContent>
-            </Card>
-          )}
-        </>
+            <div>
+              <p className="text-slate-500">Weather</p>
+              <p className="font-semibold">{weatherLine}</p>
+            </div>
+            <div>
+              <p className="text-slate-500">Crowd warning</p>
+              <p className="font-semibold">Shibuya 11:30 spike</p>
+            </div>
+            <div>
+              <p className="text-slate-500">Highlight</p>
+              <p className="font-semibold">{activeItinerary[0]?.activity || 'Nezu Garden Walk'}</p>
+            </div>
+          </CardContent>
+        </Card>
       )}
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center justify-between">
+            <span className="flex items-center gap-2"><Coins className="h-4 w-4" /> Budget Tension</span>
+            <span className="text-sm">{budgetLine}</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
+            <div className={`h-full ${tensionColor} ${budgetPct >= 80 ? 'animate-pulse' : ''}`} style={{ width: `${budgetPct}%` }} />
+          </div>
+          <div className="flex items-center justify-between text-xs text-slate-600">
+            <span>{budgetPct}% used</span>
+            {budgetPct >= 80 && (
+              <Link href="/trips/demo-trip/health">
+                <Button size="sm" variant="outline">Replan cheaper alternatives</Button>
+              </Link>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Active Trip Quick Card</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div>
+              <p className="text-slate-500">Destination</p>
+              <p className="font-semibold">{activeTrip?.destination || 'Tokyo'}</p>
+            </div>
+            <div>
+              <p className="text-slate-500">Dates</p>
+              <p className="font-semibold">
+                {activeTrip
+                  ? `${new Date(activeTrip.start_date).toLocaleDateString()} - ${new Date(activeTrip.end_date).toLocaleDateString()}`
+                  : 'Mar 24 - Mar 29'}
+              </p>
+            </div>
+            <div>
+              <p className="text-slate-500">Next item</p>
+              <p className="font-semibold">{activeItinerary[0]?.activity || 'Senso-ji at 09:30'}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Nomad Score</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">{1600 + trips.length * 40}</p>
+            <p className="text-xs text-slate-500 mt-1">Eco +420 • Budget +300 • Explorer +1120</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2"><BellRing className="h-4 w-4" /> Tripcast 48h Preview</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <p>Weather confidence is stable with one rain pocket on Day 2.</p>
+            <p>Safety score remains high in all planned zones.</p>
+            <Link href="/trips/demo-trip/tripcast" className="inline-flex items-center text-teal-700 font-medium">Open Tripcast <ArrowRight className="h-4 w-4 ml-1" /></Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2"><Sparkles className="h-4 w-4" /> Cross-trip Insight Teaser</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <p>&quot;You usually overspend on Day 2 after evening transit.&quot;</p>
+            <Progress value={72} />
+            <Badge variant="secondary">Pattern confidence 72%</Badge>
+            <Link href="/profile" className="block text-teal-700 font-medium">See full insights</Link>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

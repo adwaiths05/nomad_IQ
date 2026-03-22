@@ -14,7 +14,9 @@ import {
 import {
   Plane,
   MapPin,
-  MessageCircle,
+  Compass,
+  Stethoscope,
+  Film,
   BookOpen,
   LogOut,
   Menu,
@@ -25,9 +27,12 @@ import {
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
-  { href: '/dashboard/trips', label: 'My Trips', icon: Plane },
-  { href: '/dashboard/itinerary', label: 'Itinerary', icon: MapPin },
-  { href: '/dashboard/chat', label: 'AI Chat', icon: MessageCircle },
+  { href: '/plan', label: 'Trip Planner', icon: Compass },
+  { href: '/trips', label: 'Trips', icon: Plane },
+  { href: '/places', label: 'Place Discovery', icon: MapPin },
+  { href: '/trips/demo-trip/health', label: 'Trip Health', icon: Stethoscope },
+  { href: '/trips/demo-trip/tripcast', label: 'Tripcast', icon: Film },
+  { href: '/profile', label: 'Profile + Insights', icon: User },
   { href: '/dashboard/guides', label: 'Travel Guides', icon: BookOpen },
 ]
 

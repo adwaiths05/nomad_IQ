@@ -69,34 +69,13 @@ export default function ItineraryPage() {
     e.preventDefault()
     if (!selectedTripId) return
 
-    try {
-      const newItem = await apiClient.itinerary.create({
-        trip_id: selectedTripId,
-        day: parseInt(formData.day),
-        activity: formData.activity,
-        location: formData.location,
-        start_time: formData.startTime || null,
-        end_time: formData.endTime || null,
-        notes: formData.notes || null,
-      })
-
-      setItineraryItems([...itineraryItems, newItem])
-      setFormData({ day: '', activity: '', location: '', startTime: '', endTime: '', notes: '' })
-      setShowForm(false)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add itinerary item')
-    }
+    setError('Creating itinerary items directly is not exposed by backend. Use planner (/plan) and optimize endpoints.')
   }
 
   const handleDeleteItem = async (itemId: string) => {
     if (!confirm('Are you sure you want to delete this item?')) return
-
-    try {
-      await apiClient.itinerary.delete(itemId)
-      setItineraryItems(itineraryItems.filter((item) => item.item_id !== itemId))
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete item')
-    }
+    void itemId
+    setError('Deleting itinerary items directly is not exposed by backend.')
   }
 
   const selectedTrip = trips.find((t) => t.trip_id === selectedTripId)
