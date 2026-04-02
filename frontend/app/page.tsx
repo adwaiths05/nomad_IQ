@@ -4,13 +4,13 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 
 const slides = [
-  { city: 'Tokyo', image: 'https://images.pexels.com/photos/36290072/pexels-photo-36290072.jpeg', accentColor: '#a0c8ff', headlineColor: '#F2F0EA', subColor: '#9090b0' },
+  { city: 'Tokyo', image: 'https://images.pexels.com/photos/36290072/pexels-photo-36290072.jpeg', accentColor: '#297bee', headlineColor: '#F2F0EA', subColor: '#9090b0' },
   { city: 'Lisbon', image: 'https://images.pexels.com/photos/5069524/pexels-photo-5069524.jpeg', accentColor: '#FFB347', headlineColor: '#FDF6E3', subColor: '#b08050' },
   { city: 'Bali', image: 'https://images.pexels.com/photos/3913678/pexels-photo-3913678.jpeg', accentColor: '#7eda8a', headlineColor: '#F0F5F0', subColor: '#608060' },
-  { city: 'Amalfi Coast', image: 'https://images.pexels.com/photos/358223/pexels-photo-358223.jpeg', accentColor: '#60d0c0', headlineColor: '#EDF4FB', subColor: '#5080a0' },
+  { city: 'Amalfi Coast', image: 'https://images.pexels.com/photos/358223/pexels-photo-358223.jpeg', accentColor: '#36e7cc', headlineColor: '#EDF4FB', subColor: '#5080a0' },
   { city: 'Kyoto', image: 'https://images.pexels.com/photos/6793716/pexels-photo-6793716.jpeg', accentColor: '#c8e890', headlineColor: '#F5F5EE', subColor: '#708058' },
   { city: 'Santorini', image: 'https://images.pexels.com/photos/221532/pexels-photo-221532.jpeg', accentColor: '#88aaff', headlineColor: '#FFFFFF', subColor: '#5068b0' },
-  { city: 'New York', image: 'https://images.pexels.com/photos/747101/pexels-photo-747101.jpeg', accentColor: '#FFD580', headlineColor: '#F8F8F8', subColor: '#909090' },
+  { city: 'New York', image: 'https://images.pexels.com/photos/747101/pexels-photo-747101.jpeg', accentColor: '#1847ef', headlineColor: '#F8F8F8', subColor: '#1e3a5f' },
   { city: 'Seoul', image: 'https://images.pexels.com/photos/2067057/pexels-photo-2067057.jpeg', accentColor: '#e080ff', headlineColor: '#F5EEFF', subColor: '#8058a0' },
   { city: 'The Dolomites', image: 'https://plus.unsplash.com/premium_photo-1724424666831-98f263e2ea4a?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', accentColor: '#90d0f0', headlineColor: '#EEF2F8', subColor: '#6080a0' },
   { city: 'Banff National Park', image: 'https://images.unsplash.com/photo-1503614472-8c93d56e92ce?q=80&w=1111&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', accentColor: '#50e0c8', headlineColor: '#E8F5F2', subColor: '#408070' },
@@ -23,7 +23,6 @@ const typewriterPhrases = [
   'Somewhere warm, 7 days, eco-friendly',
 ]
 
-// Floating pills removed - streamlined hero design
 
 const integrationCards = [
   {
@@ -34,7 +33,7 @@ const integrationCards = [
   {
     provider: 'Google Places',
     description: 'Point-of-interest context and place confidence enrichment',
-    endpoint: 'POST /integrations/rag/enrich-context',
+    endpoint: 'GET /integrations/google/places/city',
   },
   {
     provider: 'Ticketmaster',
@@ -44,7 +43,12 @@ const integrationCards = [
   {
     provider: 'OpenWeather',
     description: 'Forecast-aware planning and weather snapshots',
-    endpoint: 'POST /weather/check',
+    endpoint: 'GET /integrations/openweather/forecast',
+  },
+  {
+    provider: 'Apify Actors',
+    description: 'Actor discovery, runs, output retrieval, and docs search',
+    endpoint: 'POST /integrations/apify/call-actor',
   },
   {
     provider: 'Numbeo',
@@ -275,8 +279,6 @@ export default function HomePage() {
   }, [])
 
   useEffect(() => {
-    if (isHeroHovered) return
-
     const slideDuration = 6000
     const progressInterval = setInterval(() => {
       setProgressWidth((prev) => {
@@ -304,7 +306,7 @@ export default function HomePage() {
       clearInterval(progressInterval)
       clearInterval(cityInterval)
     }
-  }, [isHeroHovered])
+  }, [])
 
   const handleDotClick = (index: number) => {
     setActiveCityIndex(index)
@@ -348,23 +350,25 @@ export default function HomePage() {
         </header>
 
         <div className="hero-inner">
-          <p className="hero-eyebrow" style={{ color: slides[activeCityIndex].subColor, transition: 'color 1.2s ease' }}>AI-powered travel intelligence</p>
-          <h1 className="hero-title" style={{ color: headlineColor, transition: 'color 1.2s ease' }}>
-            Your next trip to{' '}
-            <span 
-              className={`city-accent ${cityNameBlur ? 'blurred' : ''}`}
-              style={{ color: accentColor, transition: 'color 1.2s ease' }}
-              aria-label="Rotating city name"
-              aria-live="polite"
-            >
-              [{slides[activeCityIndex].city}]
-            </span>
-            , planned by intelligence.
-          </h1>
-          <p className="hero-subtitle" style={{ color: headlineColor, transition: 'color 1.2s ease' }}>
-            One sentence. Real-time data. A full itinerary - optimised for budget,
-            eco-impact, and what actually matters to you.
-          </p>
+          <div className="hero-content-box">
+            <p className="hero-eyebrow" style={{ color: '#ffffff', transition: 'color 1.2s ease' }}>AI-powered travel intelligence</p>
+            <h1 className="hero-title" style={{ color: headlineColor, transition: 'color 1.2s ease' }}>
+              Your next trip to{' '}
+              <span 
+                className={`city-accent ${cityNameBlur ? 'blurred' : ''}`}
+                style={{ color: accentColor, transition: 'color 1.2s ease' }}
+                aria-label="Rotating city name"
+                aria-live="polite"
+              >
+                [{slides[activeCityIndex].city}]
+              </span>
+              , planned by intelligence.
+            </h1>
+            <p className="hero-subtitle" style={{ color: headlineColor, transition: 'color 1.2s ease' }}>
+              One sentence. Real-time data. A full itinerary - optimised for budget,
+              eco-impact, and what actually matters to you.
+            </p>
+          </div>
 
           <div className="hero-input-group">
             <div className="input-wrapper">
@@ -382,6 +386,10 @@ export default function HomePage() {
               className="teal-button"
               type="button"
               onClick={() => setIsSignupModalOpen(true)}
+              style={{ 
+                background: `linear-gradient(130deg, ${accentColor}, ${accentColor})`,
+                transition: 'background 1.2s ease'
+              }}
             >
               Plan my trip →
             </button>
@@ -482,14 +490,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <p className="endpoint-row">
-            POST /plan-trip GET /trips/:id/itinerary POST
-            /integrations/rag/enrich-context GET /itinerary/items/:id/explanation
-          </p>
-          <p className="recruiter-note">
-            4 senior AI concepts in one animation: streaming output, confidence
-            scoring, RAG enrichment, and explainability.
-          </p>
+
         </div>
       </section>
 
@@ -506,7 +507,7 @@ export default function HomePage() {
                   <span>Arashiyama</span>
                 </div>
               </div>
-              <p className="endpoint-row">POST /plan-trip POST /score/batch</p>
+
               <h3>Plans that think ahead.</h3>
               <p>
                 Natural language in. A fully optimised, scored, explainable
@@ -523,10 +524,7 @@ export default function HomePage() {
                 <p className="budget-ticker">€1,204 / €1,500</p>
                 <div className="alt-card">Cheaper alternatives available nearby</div>
               </div>
-              <p className="endpoint-row">
-                POST /budget/estimate POST /budget/optimize GET
-                /integrations/numbeo/city-baseline
-              </p>
+
               <h3>Money that never runs out of plan.</h3>
               <p>
                 Real-time spend tracking against Numbeo cost baselines. When
@@ -544,9 +542,7 @@ export default function HomePage() {
                 </div>
                 <p className="tree-counter">= 3 trees saved this trip.</p>
               </div>
-              <p className="endpoint-row">
-                POST /environment/evaluate GET /integrations/climatiq/route-emissions
-              </p>
+
               <h3>Travel lighter. Literally.</h3>
               <p>
                 Every route is scored for carbon emissions via Climatiq. Nomadiq
@@ -617,10 +613,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            <p className="endpoint-row">
-              POST /plan-trip GET /integrations/amadeus/safety-score GET
-              /integrations/openweather/forecast POST /budget/estimate
-            </p>
+
             <p className="recruiter-note">
               Multi-API orchestration in a single action - 4 endpoints firing
               simultaneously, composed into one reveal.
@@ -674,11 +667,6 @@ export default function HomePage() {
           <button className="ghost-link card-ghost" type="button">
             Share your Tripcast
           </button>
-
-          <p className="endpoint-row">
-            POST /weather/check GET /integrations/amadeus/safety-score GET
-            /integrations/ticketmaster/events GET /trips/:id/budget
-          </p>
         </div>
       </section>
 
@@ -748,7 +736,7 @@ export default function HomePage() {
           >
             Start planning free -&gt;
           </button>
-          <a className="ghost-link" href="https://github.com" target="_blank" rel="noreferrer">
+          <a className="ghost-link" href="https://github.com/adwaiths05/nomad_IQ" target="_blank" rel="noreferrer">
             View source on GitHub -&gt;
           </a>
 

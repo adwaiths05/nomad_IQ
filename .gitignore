@@ -16,6 +16,7 @@ htmlcov/
 venv/
 env/
 composio_env/
+composio/
 
 # Environment files
 .env

@@ -1,0 +1,205 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: nomadiq-postgres
+    environment:
+      POSTGRES_DB: nomadiq
+      POSTGRES_USER: nomadiq
+      POSTGRES_PASSWORD: nomadiq
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nomadiq -d nomadiq"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: nomadiq-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  embeddings:
+    image: ghcr.io/huggingface/text-embeddings-inference:latest
+    container_name: nomadiq-embeddings
+    command: >
+      --model-id ${EMBEDDINGS_MODEL_NAME:-nomic-ai/nomic-embed-text-v1.5}
+      --pooling mean
+      --max-client-batch-size 64
+    ports:
+      - "8002:80"
+
+  vllm:
+    image: vllm/vllm-openai:latest
+    container_name: nomadiq-vllm
+    command: >
+      --model ${VLLM_MODEL_NAME:-Qwen/Qwen2.5-7B-Instruct-AWQ}
+      --quantization awq
+      --dtype auto
+      --gpu-memory-utilization 0.90
+      --host 0.0.0.0
+      --port 8000
+    environment:
+      HF_TOKEN: ${HF_TOKEN:-}
+    ports:
+      - "8001:8000"
+    shm_size: "8gb"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/v1/models', timeout=5)"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+
+  mcp-google-maps:
+    build:
+      context: ./docker/mcp-bridge
+      dockerfile: Dockerfile
+    container_name: nomadiq-mcp-google-maps
+    environment:
+      MCP_COMMAND: npx -y @modelcontextprotocol/server-google-maps
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
+    ports:
+      - "9101:9000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
+      interval: 15s
+      timeout: 8s
+      retries: 10
+
+  mcp-ticketmaster:
+    build:
+      context: ./docker/mcp-bridge
+      dockerfile: Dockerfile
+    container_name: nomadiq-mcp-ticketmaster
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace:ro
+    environment:
+      MCP_COMMAND: python /workspace/apps/mcp_servers/ticketmaster_server.py
+      TICKETMASTER_API_KEY: ${TICKETMASTER_API_KEY:-}
+    ports:
+      - "9102:9000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
+      interval: 15s
+      timeout: 8s
+      retries: 10
+
+  mcp-openweather:
+    build:
+      context: ./docker/mcp-bridge
+      dockerfile: Dockerfile
+    container_name: nomadiq-mcp-openweather
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace:ro
+    environment:
+      MCP_COMMAND: python /workspace/apps/mcp_servers/weather_server.py
+      OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY:-}
+    ports:
+      - "9103:9000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
+      interval: 15s
+      timeout: 8s
+      retries: 10
+
+  mcp-apify:
+    build:
+      context: ./docker/mcp-bridge
+      dockerfile: Dockerfile
+    container_name: nomadiq-mcp-apify
+    environment:
+      MCP_COMMAND: npx -y @apify/actors-mcp-server
+      APIFY_API_TOKEN: ${APIFY_API_TOKEN:-}
+    ports:
+      - "9104:9000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
+      interval: 15s
+      timeout: 8s
+      retries: 10
+
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: nomadiq-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mcp-google-maps:
+        condition: service_healthy
+      mcp-ticketmaster:
+        condition: service_healthy
+      mcp-openweather:
+        condition: service_healthy
+      mcp-apify:
+        condition: service_healthy
+      vllm:
+        condition: service_healthy
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      APP_DEBUG: ${APP_DEBUG:-true}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://nomadiq:nomadiq@postgres:5432/nomadiq}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-in-env}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      ACCESS_TOKEN_MINUTES: ${ACCESS_TOKEN_MINUTES:-30}
+      REFRESH_TOKEN_DAYS: ${REFRESH_TOKEN_DAYS:-14}
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://vllm:8000/v1}
+      LLM_MODEL_NAME: ${LLM_MODEL_NAME:-Qwen/Qwen2.5-7B-Instruct-AWQ}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      EMBEDDINGS_BASE_URL: ${EMBEDDINGS_BASE_URL:-http://embeddings:80}
+      EMBEDDINGS_MODEL_NAME: ${EMBEDDINGS_MODEL_NAME:-nomic-ai/nomic-embed-text-v1.5}
+      EMBEDDINGS_API_KEY: ${EMBEDDINGS_API_KEY:-}
+      MCP_ENABLED: ${MCP_ENABLED:-true}
+      MCP_AUTH_TOKEN: ${MCP_AUTH_TOKEN:-}
+      MCP_GOOGLE_MAPS_SERVER_URL: ${MCP_GOOGLE_MAPS_SERVER_URL:-http://mcp-google-maps:9000}
+      MCP_TICKETMASTER_SERVER_URL: ${MCP_TICKETMASTER_SERVER_URL:-http://mcp-ticketmaster:9000}
+      MCP_OPENWEATHER_SERVER_URL: ${MCP_OPENWEATHER_SERVER_URL:-http://mcp-openweather:9000}
+      MCP_APIFY_SERVER_URL: ${MCP_APIFY_SERVER_URL:-http://mcp-apify:9000}
+      MCP_COMPOSIO_SERVER_URL: ${MCP_COMPOSIO_SERVER_URL:-http://mcp-ticketmaster:9000}
+      MCP_CUSTOM_SERVER_URL: ${MCP_CUSTOM_SERVER_URL:-http://mcp-apify:9000}
+      MCP_TOOL_GOOGLE_PLACES_CITY: ${MCP_TOOL_GOOGLE_PLACES_CITY:-maps_search_places}
+      MCP_TOOL_GOOGLE_PLACES_NEARBY: ${MCP_TOOL_GOOGLE_PLACES_NEARBY:-maps_search_places}
+      MCP_TOOL_GOOGLE_ROUTES_TRANSIT: ${MCP_TOOL_GOOGLE_ROUTES_TRANSIT:-maps_distance_matrix}
+      MCP_TOOL_TICKETMASTER_EVENTS: ${MCP_TOOL_TICKETMASTER_EVENTS:-search_events}
+      MCP_TOOL_OPENWEATHER_FORECAST: ${MCP_TOOL_OPENWEATHER_FORECAST:-get_five_day_forecast}
+      MCP_TOOL_EXCHANGE_RATES: ${MCP_TOOL_EXCHANGE_RATES:-exchange_rate_get_rates}
+      MCP_TOOL_NUMBEO_BASELINE: ${MCP_TOOL_NUMBEO_BASELINE:-numbeo_city_baseline}
+      MCP_TOOL_AMADEUS_SAFETY: ${MCP_TOOL_AMADEUS_SAFETY:-amadeus_safety_score}
+      MCP_TOOL_CLIMATIQ_EMISSIONS: ${MCP_TOOL_CLIMATIQ_EMISSIONS:-climatiq_estimate_route_emissions}
+      MCP_TOOL_RAG_ENRICH_CONTEXT: ${MCP_TOOL_RAG_ENRICH_CONTEXT:-rag_enrich_plan_context}
+      MCP_TOOL_APIFY_CALL_ACTOR: ${MCP_TOOL_APIFY_CALL_ACTOR:-call-actor}
+      MCP_TOOL_APIFY_GET_ACTOR_OUTPUT: ${MCP_TOOL_APIFY_GET_ACTOR_OUTPUT:-get-actor-output}
+      MCP_APIFY_NUMBEO_ACTOR_ID: ${MCP_APIFY_NUMBEO_ACTOR_ID:-}
+      MCP_APIFY_NEWS_ACTOR_ID: ${MCP_APIFY_NEWS_ACTOR_ID:-GetLatestNewsOnTopic}
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: nomadiq-frontend
+    depends_on:
+      api:
+        condition: service_started
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres_data:
