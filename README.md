@@ -2,7 +2,6 @@
 
 > **Agentic Travel AI that reasons across memory and live APIs—not just keyword search**
 
-![Status](https://img.shields.io/badge/status-production--ready-brightgreen)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
 ![TypeScript](https://img.shields.io/badge/typescript-5.0%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
@@ -451,13 +450,13 @@ EMBEDDINGS_MODEL_NAME=nomic-ai/nomic-embed-text-v1.5
 
 ## 🎓 What Makes This Production-Grade
 
-✅ **Observability:** Structured JSON traces per step (not just logs)
-✅ **Reliability:** Fallback chain ensures graceful degradation (no silent failures)
-✅ **Scalability:** Async/await throughout; pgvector indexed for <150ms queries
-✅ **Maintainability:** Clear separation of concerns (RAG ≠ orchestration ≠ external APIs)
-✅ **Debuggability:** Tool-call traces make it easy to spot where decisions went wrong
-✅ **Security:** JWT auth, bcrypt passwords, env-only secrets (no hardcoded keys)
-✅ **Testability:** Modular functions with deterministic fallbacks (no flaky external deps)
+- ✅ **Observability:** Structured JSON traces per step (not just logs)
+- ✅ **Reliability:** Fallback chain ensures graceful degradation (no silent failures)
+- ✅ **Scalability:** Async/await throughout; pgvector indexed for <150ms queries
+- ✅ **Maintainability:** Clear separation of concerns (RAG ≠ orchestration ≠ external APIs)
+- ✅ **Debuggability:** Tool-call traces make it easy to spot where decisions went wrong
+- ✅ **Security:** JWT auth, bcrypt passwords, env-only secrets (no hardcoded keys)
+- ✅ **Testability:** Modular functions with deterministic fallbacks (no flaky external deps)
 
 ---
 
