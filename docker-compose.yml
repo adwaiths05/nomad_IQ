@@ -40,7 +40,7 @@ services:
   vllm:
     image: vllm/vllm-openai:latest
     container_name: nomadiq-vllm
-    command: >
+    command: 
       --model ${VLLM_MODEL_NAME:-Qwen/Qwen2.5-7B-Instruct-AWQ}
       --quantization awq
       --dtype auto
@@ -160,7 +160,7 @@ services:
       LLM_BASE_URL: ${LLM_BASE_URL:-http://vllm:8000/v1}
       LLM_MODEL_NAME: ${LLM_MODEL_NAME:-Qwen/Qwen2.5-7B-Instruct-AWQ}
       LLM_API_KEY: ${LLM_API_KEY:-}
-      EMBEDDINGS_BASE_URL: ${EMBEDDINGS_BASE_URL:-http://embeddings:80}
+      EMBEDDINGS_BASE_URL: ${EMBEDDINGS_BASE_URL:-http://embeddings:80/v1}
       EMBEDDINGS_MODEL_NAME: ${EMBEDDINGS_MODEL_NAME:-nomic-ai/nomic-embed-text-v1.5}
       EMBEDDINGS_API_KEY: ${EMBEDDINGS_API_KEY:-}
       MCP_ENABLED: ${MCP_ENABLED:-true}
@@ -185,6 +185,11 @@ services:
       MCP_TOOL_APIFY_GET_ACTOR_OUTPUT: ${MCP_TOOL_APIFY_GET_ACTOR_OUTPUT:-get-actor-output}
       MCP_APIFY_NUMBEO_ACTOR_ID: ${MCP_APIFY_NUMBEO_ACTOR_ID:-}
       MCP_APIFY_NEWS_ACTOR_ID: ${MCP_APIFY_NEWS_ACTOR_ID:-GetLatestNewsOnTopic}
+      MCP_TOOL_GOOGLE_PLACES_CITY_ALIASES: ${MCP_TOOL_GOOGLE_PLACES_CITY_ALIASES:-maps_search_places,GOOGLE_MAPS_TEXT_SEARCH,google_places_city_productive_spots}
+      MCP_TOOL_GOOGLE_PLACES_NEARBY_ALIASES: ${MCP_TOOL_GOOGLE_PLACES_NEARBY_ALIASES:-maps_search_places,GOOGLE_MAPS_TEXT_SEARCH,google_places_nearby_productive_spots}
+      MCP_TOOL_GOOGLE_ROUTES_TRANSIT_ALIASES: ${MCP_TOOL_GOOGLE_ROUTES_TRANSIT_ALIASES:-maps_distance_matrix,maps_directions,GOOGLE_MAPS_DISTANCE_MATRIX_API,google_routes_transit_duration_minutes}
+      MCP_TOOL_TICKETMASTER_EVENTS_ALIASES: ${MCP_TOOL_TICKETMASTER_EVENTS_ALIASES:-search_events,TICKETMASTER_GET_EVENTS,ticketmaster_search_events}
+      MCP_TOOL_OPENWEATHER_FORECAST_ALIASES: ${MCP_TOOL_OPENWEATHER_FORECAST_ALIASES:-get_five_day_forecast,openweather_five_day_forecast}
     ports:
       - "8000:8000"
 

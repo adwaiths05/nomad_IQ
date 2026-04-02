@@ -5,17 +5,17 @@ from pydantic import Field
 _pydantic_settings = importlib.util.find_spec("pydantic_settings")
 if _pydantic_settings is not None:
     _settings_module = importlib.import_module("pydantic_settings")
-    BaseSettings = _settings_module.BaseSettings
-    SettingsConfigDict = _settings_module.SettingsConfigDict
+
+    class Settings(_settings_module.BaseSettings):
+        model_config = _settings_module.SettingsConfigDict(env_file=None, extra="ignore")
+
 else:
     from pydantic.v1 import BaseSettings
 
-    class SettingsConfigDict(dict):
-        pass
-
-
-class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=None, extra="ignore")
+    class Settings(BaseSettings):
+        class Config:
+            env_file = None
+            extra = "ignore"
 
     app_name: str = "Nomadiq API"
     app_env: str = "development"
