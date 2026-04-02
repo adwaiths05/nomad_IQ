@@ -54,41 +54,41 @@ LLM Answer Generation
 ## 🚀 Tech Stack
 
 ### Frontend
-![Next.js](https://img.shields.io/badge/Next.js-14-000000?style=for-the-badge&logo=next.js)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=for-the-badge&logo=typescript)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-3.4-06B6D4?style=for-the-badge&logo=tailwindcss)
-![shadcn/ui](https://img.shields.io/badge/shadcn%2Fui-components-000000?style=for-the-badge&logo=react)
+[![Next.js](https://img.shields.io/badge/Next.js-14-000000?style=flat&logo=next.js)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=flat&logo=typescript)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-3.4-06B6D4?style=flat&logo=tailwindcss)](https://tailwindcss.com/)
+[![shadcn/ui](https://img.shields.io/badge/shadcn%2Fui-components-000000?style=flat&logo=react)](https://ui.shadcn.com/)
 
 ### Backend
-![FastAPI](https://img.shields.io/badge/FastAPI-0.110-009485?style=for-the-badge&logo=fastapi)
-![Pydantic](https://img.shields.io/badge/Pydantic-v2-E92063?style=for-the-badge&logo=python)
-![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0-red?style=for-the-badge&logo=python)
-![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.110-009485?style=flat&logo=fastapi)](https://fastapi.tiangolo.com/)
+[![Pydantic](https://img.shields.io/badge/Pydantic-v2-E92063?style=flat&logo=python)](https://docs.pydantic.dev/)
+[![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0-red?style=flat&logo=python)](https://www.sqlalchemy.org/)
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat&logo=python)](https://www.python.org/)
 
 ### AI & ML
-![PydanticAI](https://img.shields.io/badge/PydanticAI-Custom%20Orchestrator-E92063?style=for-the-badge)
-![Qwen](https://img.shields.io/badge/Qwen-2.5--7B--AWQ-4B8BBE?style=for-the-badge&logo=huggingface)
-![vLLM](https://img.shields.io/badge/vLLM-OpenAI%20Compatible-FF6B6B?style=for-the-badge)
-![HuggingFace](https://img.shields.io/badge/HuggingFace-Embeddings-FFD602?style=for-the-badge&logo=huggingface)
+[![PydanticAI](https://img.shields.io/badge/PydanticAI-Orchestrator-E92063?style=flat&logo=python)](https://ai.pydantic.dev/)
+[![Qwen](https://img.shields.io/badge/Qwen-2.5--7B--AWQ-FF9E64?style=flat&logo=huggingface)](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct-AWQ)
+[![vLLM](https://img.shields.io/badge/vLLM-OpenAI%20Compatible-FF6B6B?style=flat&logo=python)](https://docs.vllm.ai/)
+[![HuggingFace](https://img.shields.io/badge/HuggingFace-Embeddings-FFD602?style=flat&logo=huggingface)](https://huggingface.co/)
 
 ### Data & Storage
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791?style=for-the-badge&logo=postgresql)
-![pgvector](https://img.shields.io/badge/pgvector-768--dim-336791?style=for-the-badge&logo=postgresql)
-![Redis](https://img.shields.io/badge/Redis-7.0-DC382D?style=for-the-badge&logo=redis)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791?style=flat&logo=postgresql)](https://www.postgresql.org/)
+[![pgvector](https://img.shields.io/badge/pgvector-Vector%20DB-336791?style=flat&logo=postgresql)](https://github.com/pgvector/pgvector)
+[![Redis](https://img.shields.io/badge/Redis-7.0-DC382D?style=flat&logo=redis)](https://redis.io/)
 
 ### Infrastructure
-![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker)
-![MCP](https://img.shields.io/badge/MCP-Model%20Context%20Protocol-000000?style=for-the-badge)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat&logo=docker)](https://www.docker.com/)
+[![MCP](https://img.shields.io/badge/MCP-Protocol-000000?style=flat&logo=python)](https://modelcontextprotocol.io/)
 
 ### External APIs & Integrations
-![Google Maps](https://img.shields.io/badge/Google%20Maps-Places%20API-4285F4?style=for-the-badge&logo=googlemaps)
-![Ticketmaster](https://img.shields.io/badge/Ticketmaster-Events%20API-FF0000?style=for-the-badge)
-![OpenWeather](https://img.shields.io/badge/OpenWeather-Weather%20API-FA7E1E?style=for-the-badge)
-![Apify](https://img.shields.io/badge/Apify-Web%20Scraper-3F51B5?style=for-the-badge)
+[![Google Maps](https://img.shields.io/badge/Google%20Maps-Places%20API-4285F4?style=flat&logo=googlemaps)](https://developers.google.com/maps)
+[![Ticketmaster](https://img.shields.io/badge/Ticketmaster-Events%20API-FF0000?style=flat)](https://developer.ticketmaster.com/)
+[![OpenWeather](https://img.shields.io/badge/OpenWeather-API-FA7E1E?style=flat)](https://openweathermap.org/api)
+[![Apify](https://img.shields.io/badge/Apify-Web%20Scraper-3F51B5?style=flat)](https://apify.com/)
 
 ### Security & Auth
-![JWT](https://img.shields.io/badge/JWT-Tokens-000000?style=for-the-badge&logo=jsonwebtokens)
-![bcrypt](https://img.shields.io/badge/bcrypt-Password%20Hashing-CC0000?style=for-the-badge)
+[![JWT](https://img.shields.io/badge/JWT-Tokens-000000?style=flat&logo=jsonwebtokens)](https://jwt.io/)
+[![bcrypt](https://img.shields.io/badge/bcrypt-Hashing-CC0000?style=flat)](https://github.com/pyca/bcrypt)
 
 ---
 
