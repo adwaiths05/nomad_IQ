@@ -478,7 +478,7 @@ class ApiClientClass {
   }
 
   memory = {
-    create: (payload: { user_id?: string; group_id?: string | null; text: string }): Promise<MemoryRead> =>
+    create: (payload: { user_id?: string; group_id?: string | null; content: string; metadata?: Record<string, unknown> }): Promise<MemoryRead> =>
       this.request<MemoryRead>('/memory', {
         method: 'POST',
         body: JSON.stringify(payload),
@@ -486,6 +486,12 @@ class ApiClientClass {
 
     search: (payload: { query: string; user_id?: string; group_id?: string | null; limit?: number }): Promise<MemoryRead[]> =>
       this.request<MemoryRead[]>('/memory/search', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+
+    searchTool: (payload: { query: string; user_id?: string; group_id?: string | null; limit?: number }): Promise<Record<string, unknown>> =>
+      this.request<Record<string, unknown>>('/memory/search-tool', {
         method: 'POST',
         body: JSON.stringify(payload),
       }),

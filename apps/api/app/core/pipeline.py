@@ -7,7 +7,7 @@ from app.models.trip import Trip
 
 
 async def run_plan_trip(db: AsyncSession, trip: Trip) -> dict:
-    base = await build_plan_outline(str(trip.city), str(trip.start_date), str(trip.end_date))
+    base = await build_plan_outline(db, str(trip.city), str(trip.start_date), str(trip.end_date))
     return optimize_plan(base)
 
 
