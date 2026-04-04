@@ -1,6 +1,8 @@
-from datetime import date
+import os
+from datetime import date, timedelta
 from typing import Any
 
+from app.integrations.cache import cache_get_json, cache_set_json
 from app.config.settings import get_settings
 from app.integrations.mcp_client import FastMCPClient
 
@@ -123,6 +125,100 @@ def _extract_duration_minutes(result: Any) -> int | None:
                     if seconds is not None and seconds > 0:
                         return max(int(round(seconds / 60)), 1)
     return None
+
+
+def _resolve_flight_date_window(start_date: date | str | None, end_date: date | str | None) -> tuple[str, str]:
+    today = date.today()
+
+    if isinstance(start_date, date):
+        resolved_start = start_date
+    elif isinstance(start_date, str) and start_date.strip():
+        resolved_start = date.fromisoformat(start_date[:10])
+    else:
+        resolved_start = today
+
+    if isinstance(end_date, date):
+        resolved_end = end_date
+    elif isinstance(end_date, str) and end_date.strip():
+        resolved_end = date.fromisoformat(end_date[:10])
+    else:
+        resolved_end = resolved_start + timedelta(days=30)
+
+    if resolved_end < resolved_start:
+        resolved_end = resolved_start
+
+    return resolved_start.isoformat(), resolved_end.isoformat()
+
+
+def _extract_kiwi_flights(result: Any) -> list[dict[str, Any]]:
+    if isinstance(result, list):
+        return [item for item in result if isinstance(item, dict)]
+    if isinstance(result, dict):
+        for key in ["data", "flights", "results", "items"]:
+            value = result.get(key)
+            if isinstance(value, list):
+                return [item for item in value if isinstance(item, dict)]
+        nested = result.get("data")
+        if isinstance(nested, dict):
+            for key in ["data", "flights", "results", "items"]:
+                value = nested.get(key)
+                if isinstance(value, list):
+                    return [item for item in value if isinstance(item, dict)]
+    return []
+
+
+def _normalize_kiwi_flights(raw_flights: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    normalized: list[dict[str, Any]] = []
+    for flight in raw_flights:
+        route = flight.get("route") if isinstance(flight.get("route"), list) else []
+        route_items = [segment for segment in route if isinstance(segment, dict)]
+        first_route = route_items[0] if route_items else {}
+        last_route = route_items[-1] if route_items else {}
+
+        airline = first_route.get("airline")
+        if not airline:
+            airlines = flight.get("airlines")
+            if isinstance(airlines, list) and airlines:
+                airline = airlines[0]
+
+        price = _to_float(flight.get("price"))
+        duration = flight.get("duration")
+        duration_minutes: float | None = None
+        if isinstance(duration, dict):
+            duration_minutes = _to_float(duration.get("total"))
+            if duration_minutes is None:
+                duration_minutes = _to_float(duration.get("return"))
+        elif isinstance(duration, (int, float)):
+            duration_minutes = float(duration)
+
+        departure = first_route.get("local_departure") or first_route.get("utc_departure") or flight.get("local_departure")
+        arrival = last_route.get("local_arrival") or last_route.get("utc_arrival") or flight.get("local_arrival")
+        origin = first_route.get("cityFrom") or first_route.get("flyFrom") or flight.get("cityFrom") or flight.get("flyFrom")
+        destination = last_route.get("cityTo") or last_route.get("flyTo") or flight.get("cityTo") or flight.get("flyTo")
+
+        normalized.append(
+            {
+                "airline": str(airline or "Unknown airline"),
+                "origin": str(origin or "Unknown origin"),
+                "destination": str(destination or "Unknown destination"),
+                "departure": str(departure or ""),
+                "arrival": str(arrival or ""),
+                "duration_minutes": duration_minutes,
+                "stops": max(len(route_items) - 1, 0),
+                "price": price,
+                "currency": str(flight.get("currency") or "USD"),
+                "deep_link": flight.get("deep_link"),
+                "one_way": bool(flight.get("one_way", False)),
+            }
+        )
+
+    normalized.sort(
+        key=lambda item: (
+            float(item["price"]) if isinstance(item.get("price"), (int, float)) else float("inf"),
+            str(item.get("departure") or ""),
+        )
+    )
+    return normalized
 
 
 class ExchangeRateClient:
@@ -288,6 +384,120 @@ class TicketmasterClient:
         )
         raw_events = _extract_ticketmaster_events(result)
         return _normalize_ticketmaster_events(raw_events)
+
+
+class KiwiFlightsClient:
+    cache_ttl_seconds = 2 * 60 * 60
+    nomad_cache_ttl_seconds = 6 * 60 * 60
+
+    def __init__(self) -> None:
+        self.mcp = FastMCPClient()
+
+    def _server_url(self) -> str | None:
+        return os.getenv("MCP_KIWI_SERVER_URL") or os.getenv("MCP_TEQUILA_SERVER_URL")
+
+    def _flight_tool_name(self) -> str:
+        return os.getenv("MCP_TOOL_KIWI_SEARCH_FLIGHTS", "search_flights")
+
+    def _nomad_tool_name(self) -> str:
+        return os.getenv("MCP_TOOL_KIWI_SEARCH_NOMAD", "search_nomad_flights")
+
+    async def search_flights(
+        self,
+        city: str,
+        start_date: date | str | None = None,
+        end_date: date | str | None = None,
+        origin_city: str | None = None,
+        limit: int = 10,
+        currency: str = "USD",
+    ) -> list[dict[str, Any]]:
+        if not city:
+            return []
+
+        date_from, date_to = _resolve_flight_date_window(start_date, end_date)
+        cache_key = (
+            f"kiwi:flights:{(origin_city or 'anywhere').lower()}:{city.lower()}:{date_from}:{date_to}:{limit}:{currency.upper()}"
+        )
+        cached = await cache_get_json(cache_key)
+        if isinstance(cached, list):
+            return [item for item in cached if isinstance(item, dict)]
+
+        server_url = self._server_url()
+        if not server_url:
+            return []
+
+        result = await self.mcp.call_tool(
+            server_url=server_url,
+            tool_name=self._flight_tool_name(),
+            tool_aliases=_parse_aliases(
+                os.getenv(
+                    "MCP_TOOL_KIWI_SEARCH_FLIGHTS_ALIASES",
+                    "search_flights,kiwi_search_flights,tequila_search_flights",
+                )
+            ),
+            arguments={
+                "city": city,
+                "start_date": date_from,
+                "end_date": date_to,
+                "origin_city": origin_city,
+                "limit": limit,
+                "currency": currency,
+            },
+            timeout_seconds=40,
+        )
+        flights = _normalize_kiwi_flights(_extract_kiwi_flights(result))
+        if flights:
+            await cache_set_json(cache_key, flights, ttl_seconds=self.cache_ttl_seconds)
+        return flights
+
+    async def search_nomad_deals(
+        self,
+        origin_city: str | None = None,
+        start_date: date | str | None = None,
+        end_date: date | str | None = None,
+        nights_in_dst_from: int | None = None,
+        nights_in_dst_to: int | None = None,
+        max_fly_duration: int | None = None,
+        limit: int = 10,
+        currency: str = "USD",
+    ) -> dict[str, Any] | list[Any] | None:
+        date_from, date_to = _resolve_flight_date_window(start_date, end_date)
+        cache_key = (
+            f"kiwi:nomad:{(origin_city or 'anywhere').lower()}:{date_from}:{date_to}:{nights_in_dst_from}:{nights_in_dst_to}:{max_fly_duration}:{limit}:{currency.upper()}"
+        )
+        cached = await cache_get_json(cache_key)
+        if isinstance(cached, (dict, list)):
+            return cached
+
+        server_url = self._server_url()
+        if not server_url:
+            return None
+
+        result = await self.mcp.call_tool(
+            server_url=server_url,
+            tool_name=self._nomad_tool_name(),
+            tool_aliases=_parse_aliases(
+                os.getenv(
+                    "MCP_TOOL_KIWI_SEARCH_NOMAD_ALIASES",
+                    "search_nomad_flights,kiwi_search_nomad_flights,tequila_search_nomad_flights",
+                )
+            ),
+            arguments={
+                "origin_city": origin_city,
+                "start_date": date_from,
+                "end_date": date_to,
+                "nights_in_dst_from": nights_in_dst_from,
+                "nights_in_dst_to": nights_in_dst_to,
+                "max_fly_duration": max_fly_duration,
+                "limit": limit,
+                "currency": currency,
+            },
+            timeout_seconds=40,
+        )
+        if isinstance(result, (dict, list)):
+            await cache_set_json(cache_key, result, ttl_seconds=self.nomad_cache_ttl_seconds)
+            return result
+        return None
 
 
 class OpenWeatherClient:

@@ -2,6 +2,7 @@ import asyncio
 from typing import Any
 
 import httpx
+import os
 from fastapi import FastAPI
 
 from app.config.settings import get_settings
@@ -115,6 +116,7 @@ async def startup_health_check() -> dict[str, Any]:
         mcp_targets = [
             ("mcp.google_maps", settings.mcp_google_maps_server_url),
             ("mcp.ticketmaster", settings.mcp_ticketmaster_server_url),
+                ("mcp.kiwi", os.getenv("MCP_KIWI_SERVER_URL")),
             ("mcp.openweather", settings.mcp_openweather_server_url),
             ("mcp.apify", settings.mcp_apify_server_url),
             ("mcp.composio", settings.mcp_composio_server_url),

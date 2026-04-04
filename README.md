@@ -37,7 +37,7 @@ LLM Re-ranking & Filtering (top-3)
     ↓
 Agentic Loop: Plan → Execute → Observe (max 4 steps)
     ├─ Tool 1: search_memory (hybrid retrieval)
-    ├─ Tool 2: Ticketmaster (get_flights)
+    ├─ Tool 2: Kiwi/Tequila (get_flights)
     ├─ Tool 3: Google Maps (search_places)
     ├─ Tool 4: OpenWeather (get_weather)
     ├─ Tool 5: Apify + MCP (external context enrichment)
@@ -221,7 +221,7 @@ docker compose up --build
 
 3. **Agentic Loop Execution**
    - **Step 1:** `search_memory` → Finds past budget trip plans, hotel notes → Confidence: 0.89
-   - **Step 2:** `get_flights` → Query Ticketmaster for June events/flights → Confidence: 0.75
+  - **Step 2:** `get_flights` → Query Tequila for June flight options → Confidence: 0.78
    - **Step 3:** `search_places` → Google Maps for budget-friendly neighborhoods → Confidence: 0.82
    - **Step 4:** `final_answer` → Compress contexts, generate structured itinerary
 
@@ -442,7 +442,8 @@ EMBEDDINGS_MODEL_NAME=nomic-ai/nomic-embed-text-v1.5
 | vLLM | 8001 | LLM inference |
 | Embeddings | 8002 | Embedding inference |
 | MCP Google Maps | 9101 | Maps tools |
-| MCP Ticketmaster | 9102 | Event/flight data |
+| MCP Ticketmaster | 9102 | Event data |
+| MCP Kiwi | 9105 | Flight search / Nomad |
 | MCP OpenWeather | 9103 | Weather tools |
 | MCP Apify | 9104 | Web scraping tools |
 

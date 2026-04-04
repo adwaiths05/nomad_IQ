@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.llm import chat_completion
 from app.config.settings import get_settings
-from app.integrations.external_apis import GooglePlacesClient, OpenWeatherClient, TicketmasterClient
+from app.integrations.external_apis import GooglePlacesClient, KiwiFlightsClient, OpenWeatherClient
 from app.integrations.mcp_client import FastMCPClient
 from app.schemas.memory import MemorySearchResult
 from app.services.memory_service import compute_memory_confidence, search_memories_multi_query
@@ -61,8 +61,15 @@ async def _agent_decide_action(query: str, observations: list[dict[str, Any]], m
         },
         {
             "name": "get_flights",
-            "description": "Get flight or travel transport signals for destination city",
-            "parameters": {"city": "string", "start_date": "string", "end_date": "string"},
+            "description": "Get live flight options for a destination city",
+            "parameters": {
+                "city": "string",
+                "origin_city": "string",
+                "start_date": "string",
+                "end_date": "string",
+                "limit": "number",
+                "currency": "string",
+            },
         },
         {
             "name": "search_places",
@@ -106,10 +113,13 @@ async def _agent_decide_action(query: str, observations: list[dict[str, Any]], m
         pass
 
     # Graceful deterministic fallback chain.
-    fallback_actions = ["search_memory", "mcp_context_enrich", "search_places", "get_weather", "final_answer"]
+    fallback_actions = ["search_memory", "get_flights", "mcp_context_enrich", "search_places", "get_weather", "final_answer"]
     action = fallback_actions[min(current_step, len(fallback_actions) - 1)]
     args: dict[str, Any] = {"query": query} if action == "search_memory" else {"context": query}
     if action in {"search_places", "get_weather"}:
+        city = _extract_city_from_context(query)
+        args = {"city": city} if city else {}
+    if action == "get_flights":
         city = _extract_city_from_context(query)
         args = {"city": city} if city else {}
     return {"action": action, "arguments": args}
@@ -268,20 +278,53 @@ async def _tool_get_weather(city: str) -> tuple[list[str], float]:
     return [summary], 0.55
 
 
-async def _tool_get_flights(city: str, start_date: str | None = None, end_date: str | None = None) -> tuple[list[str], float]:
-    # Travel signal proxy: use live events/transport demand as a flight-signal approximation.
+async def _tool_get_flights(
+    city: str,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    origin_city: str | None = None,
+    limit: int = 10,
+    currency: str = "USD",
+) -> tuple[list[str], float]:
     if not city:
         return [], 0.0
-    try:
-        from datetime import date as dt_date
+    flights = await KiwiFlightsClient().search_flights(
+        city=city,
+        start_date=start_date,
+        end_date=end_date,
+        origin_city=origin_city,
+        limit=limit,
+        currency=currency,
+    )
+    if flights:
+        contexts: list[str] = []
+        cheapest = flights[0]
+        price = cheapest.get("price")
+        currency_code = str(cheapest.get("currency") or currency).upper()
+        if isinstance(price, (int, float)):
+            contexts.append(
+                f"Live flight options for {city}: {len(flights)} results, lowest price {price} {currency_code}."
+            )
+        else:
+            contexts.append(f"Live flight options for {city}: {len(flights)} results.")
 
-        start = dt_date.fromisoformat(start_date) if isinstance(start_date, str) and start_date else dt_date.today()
-        end = dt_date.fromisoformat(end_date) if isinstance(end_date, str) and end_date else start
-        events = await TicketmasterClient().search_events(city=city, start_date=start, end_date=end, limit=10)
-        if events:
-            return [f"Travel demand signal for {city}: {len(events)} live events in selected window."], 0.5
-    except Exception:
-        pass
+        for flight in flights[:3]:
+            route_text = f"{flight.get('origin')} -> {flight.get('destination')}"
+            details: list[str] = []
+            if flight.get("airline"):
+                details.append(str(flight["airline"]))
+            if flight.get("departure"):
+                details.append(f"depart {flight['departure']}")
+            if flight.get("arrival"):
+                details.append(f"arrive {flight['arrival']}")
+            if flight.get("stops") is not None:
+                stops = int(flight["stops"])
+                details.append(f"{stops} stop{'s' if stops != 1 else ''}")
+            if flight.get("price") is not None:
+                details.append(f"{flight['price']} {str(flight.get('currency') or currency).upper()}")
+            contexts.append(f"Option: {route_text} ({'; '.join(details)})")
+
+        return contexts, 0.78
     return [], 0.0
 
 
@@ -324,6 +367,9 @@ async def summarize_plan_with_trace(
                     city=str(arguments.get("city") or city),
                     start_date=str(arguments.get("start_date") or ""),
                     end_date=str(arguments.get("end_date") or ""),
+                    origin_city=str(arguments.get("origin_city") or "") or None,
+                    limit=int(arguments.get("limit") or 10),
+                    currency=str(arguments.get("currency") or "USD"),
                 )
             elif action == "get_weather":
                 produced, confidence = await _tool_get_weather(city=str(arguments.get("city") or city))

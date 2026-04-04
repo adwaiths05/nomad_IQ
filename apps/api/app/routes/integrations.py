@@ -11,6 +11,7 @@ from app.integrations.external_apis import (
     ExchangeRateClient,
     GooglePlacesClient,
     GoogleRoutesClient,
+    KiwiFlightsClient,
     OpenWeatherClient,
     TicketmasterClient,
     fetch_amadeus_safety_score,
@@ -122,6 +123,50 @@ async def integration_ticketmaster_events(
         limit=limit,
     )
     return {"city": city, "count": len(payload), "items": payload}
+
+
+@router.get("/kiwi/flights")
+async def integration_kiwi_flights(
+    city: str,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    origin_city: str | None = None,
+    limit: int = 10,
+    currency: str = "USD",
+) -> dict[str, Any]:
+    payload = await KiwiFlightsClient().search_flights(
+        city=city,
+        start_date=start_date,
+        end_date=end_date,
+        origin_city=origin_city,
+        limit=limit,
+        currency=currency,
+    )
+    return {"city": city, "origin_city": origin_city, "count": len(payload), "items": payload}
+
+
+@router.get("/kiwi/nomad")
+async def integration_kiwi_nomad(
+    origin_city: str | None = None,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    nights_in_dst_from: int | None = None,
+    nights_in_dst_to: int | None = None,
+    max_fly_duration: int | None = None,
+    limit: int = 10,
+    currency: str = "USD",
+) -> dict[str, Any]:
+    payload = await KiwiFlightsClient().search_nomad_deals(
+        origin_city=origin_city,
+        start_date=start_date,
+        end_date=end_date,
+        nights_in_dst_from=nights_in_dst_from,
+        nights_in_dst_to=nights_in_dst_to,
+        max_fly_duration=max_fly_duration,
+        limit=limit,
+        currency=currency,
+    )
+    return {"origin_city": origin_city, "data": payload}
 
 
 @router.get("/openweather/forecast")
