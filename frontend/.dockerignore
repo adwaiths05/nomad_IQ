@@ -1,0 +1,9 @@
+node_modules
+.pnpm-debug.log
+.next
+pnpm-store
+out
+build
+dist
+.env
+.git

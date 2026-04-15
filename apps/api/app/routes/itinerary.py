@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies.db import get_db
 from app.engines.itinerary_optimizer import optimize_itinerary
 from app.integrations.cache import cache_get_json, cache_set_json
-from app.integrations.external_apis import GooglePlacesClient, GoogleRoutesClient
+from app.integrations.external_apis import MapsClient, MapsRoutesClient
 from app.models.place import Place
 from app.models.profile import TravelerProfile
 from app.models.trip import Trip
@@ -51,7 +51,7 @@ async def optimize_itinerary_endpoint(payload: ItineraryOptimizeRequest, db: Asy
 
     if payload.remote_work_mode and resolved_work_start and resolved_work_end and payload.latitude is not None and payload.longitude is not None:
         cache_key = (
-            f"google_places:work:{payload.latitude:.4f}:{payload.longitude:.4f}:"
+            f"maps:work:{payload.latitude:.4f}:{payload.longitude:.4f}:"
             f"{resolved_work_start.isoformat()}:{resolved_work_end.isoformat()}"
         )
         cached = await cache_get_json(cache_key)
@@ -59,9 +59,9 @@ async def optimize_itinerary_endpoint(payload: ItineraryOptimizeRequest, db: Asy
             spots = cached
             source_type = "cached_api"
         else:
-            spots = await GooglePlacesClient().nearby_productive_spots(payload.latitude, payload.longitude)
+            spots = await MapsClient().nearby_productive_spots(payload.latitude, payload.longitude)
             await cache_set_json(cache_key, spots, ttl_seconds=30 * 24 * 60 * 60)
-            source_type = "google_places"
+            source_type = "mcp_maps"
 
         for spot in spots[:2]:
             items.append(
@@ -74,7 +74,7 @@ async def optimize_itinerary_endpoint(payload: ItineraryOptimizeRequest, db: Asy
                     "activity_type": f"Remote work at {spot.get('name', 'productive spot')}",
                     "travel_time_minutes": 0,
                     "cost_estimate": 0,
-                    "confidence_score": "high" if source_type == "google_places" else "medium",
+                    "confidence_score": "high" if source_type == "mcp_maps" else "medium",
                     "source_type": source_type,
                 }
             )
@@ -104,7 +104,7 @@ async def optimize_itinerary_endpoint(payload: ItineraryOptimizeRequest, db: Asy
         if isinstance(cached, dict) and isinstance(cached.get("minutes"), int):
             minutes = int(cached["minutes"])
         else:
-            minutes = await GoogleRoutesClient().transit_duration_minutes(
+            minutes = await MapsRoutesClient().transit_duration_minutes(
                 origin_lat=float(prev_place.latitude),
                 origin_lng=float(prev_place.longitude),
                 destination_lat=float(current_place.latitude),

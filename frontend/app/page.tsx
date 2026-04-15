@@ -26,49 +26,39 @@ const typewriterPhrases = [
 
 const integrationCards = [
   {
-    provider: 'Google Maps',
-    description: 'Live transit durations between every itinerary stop',
-    endpoint: 'GET /integrations/google/routes/transit-duration',
+    provider: 'mcp-travel',
+    description: 'Flights + city spots + nearby spots + transit duration in one travel boundary',
+    endpoint: 'POST /integrations/transport/search-flights',
   },
   {
-    provider: 'Google Places',
-    description: 'Point-of-interest context and place confidence enrichment',
-    endpoint: 'GET /integrations/google/places/city',
+    provider: 'backend-weather',
+    description: 'Objective wellness context (AQI, weather, heat index) via OpenWeather',
+    endpoint: 'POST /integrations/wellness/objective-signals',
   },
   {
-    provider: 'Ticketmaster',
-    description: 'Events at your destination during your trip',
-    endpoint: 'GET /integrations/ticketmaster/events',
+    provider: 'backend-events',
+    description: 'Local event intelligence via Ticketmaster direct adapter',
+    endpoint: 'POST /integrations/events/search',
   },
   {
-    provider: 'OpenWeather',
-    description: 'Forecast-aware planning and weather snapshots',
-    endpoint: 'GET /integrations/openweather/forecast',
+    provider: 'backend-finance',
+    description: 'Exchange rates and city cost baselines with deterministic fallback',
+    endpoint: 'POST /integrations/finance/exchange-rates',
   },
   {
-    provider: 'Apify Actors',
-    description: 'Actor discovery, runs, output retrieval, and docs search',
-    endpoint: 'POST /integrations/apify/call-actor',
+    provider: 'backend-safety-secondary',
+    description: 'Amadeus safety score as explainability hint, not ranking driver',
+    endpoint: 'POST /integrations/safety/score',
   },
   {
-    provider: 'Numbeo',
-    description: 'Real cost-of-living baselines per city',
-    endpoint: 'GET /integrations/numbeo/city-baseline',
+    provider: 'backend-environment',
+    description: 'Climatiq route emissions with deterministic fallback',
+    endpoint: 'POST /integrations/environment/route-emissions',
   },
   {
-    provider: 'Climatiq',
-    description: 'CO2 emissions for every route option',
-    endpoint: 'GET /integrations/climatiq/route-emissions',
-  },
-  {
-    provider: 'Amadeus',
-    description: 'Safety scores by neighbourhood',
-    endpoint: 'GET /integrations/amadeus/safety-score',
-  },
-  {
-    provider: 'Model Context Protocol (MCP)',
-    description: 'Orchestrates live tools and multi-source responses',
-    endpoint: 'POST /plan-trip',
+    provider: 'mcp-rag',
+    description: 'Long-term and short-term pgvector memory search',
+    endpoint: 'POST /integrations/rag/search-long-term',
   },
 ]
 
@@ -463,7 +453,7 @@ export default function HomePage() {
                         <circle className="ring-value" cx="50" cy="50" r="45" />
                       </svg>
                     </div>
-                    <span>87% confidence - enriched via Google Places</span>
+                    <span>87% confidence - enriched via mcp-travel + objective wellness signals</span>
                   </div>
                   <span className="why-chip">
                     Chosen for low crowd score (2.1) before 10am and proximity to
@@ -511,8 +501,8 @@ export default function HomePage() {
               <h3>Plans that think ahead.</h3>
               <p>
                 Natural language in. A fully optimised, scored, explainable
-                itinerary out - pulling live data from Google Maps, Ticketmaster,
-                and OpenWeather.
+                itinerary out - pulling live data from mcp-travel and backend
+                adapters for events, weather, and wellness signals.
               </p>
             </article>
 
@@ -701,7 +691,7 @@ export default function HomePage() {
           <article>
             <h3>{stats.co2.toLocaleString()} kg</h3>
             <p>CO2 avoided</p>
-            <div dangerouslySetInnerHTML={{ __html: '<!-- via /integrations/climatiq -->' }} />
+            <div dangerouslySetInnerHTML={{ __html: '<!-- via /integrations/environment/route-emissions -->' }} />
           </article>
           <article>
             <h3>{stats.apis} live APIs</h3>

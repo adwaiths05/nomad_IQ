@@ -41,3 +41,16 @@ build/
 
 # Docker
 *.pid
+
+# Vim swap files
+*.swp
+*.swo
+
+# pyenv
+.python-version
+
+# IDE temp files
+*.sublime-workspace
+
+# SQLite dev databases 
+*.db

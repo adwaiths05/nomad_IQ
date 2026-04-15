@@ -21,7 +21,7 @@ import {
   WeatherRead,
 } from './types'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api'
 
 class ApiClientClass {
   private baseUrl: string
@@ -524,278 +524,119 @@ class ApiClientClass {
 
   integrations = {
     exchangeRates: (baseCurrency: string): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>(`/integrations/exchange-rates/${baseCurrency}`, { method: 'GET' }),
-
-    googlePlacesCity: (city: string, maxResults = 10): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>(`/integrations/google/places/city?city=${encodeURIComponent(city)}&max_results=${maxResults}`, {
-        method: 'GET',
+      this.request<Record<string, unknown>>('/integrations/finance/exchange-rates', {
+        method: 'POST',
+        body: JSON.stringify({ base_currency: baseCurrency }),
       }),
 
-    googlePlacesNearby: (payload: {
+    transportSearchFlights: (payload: {
+      city: string
+      start_date?: string
+      end_date?: string
+      origin_city?: string
+      limit?: number
+      currency?: string
+    }): Promise<Record<string, unknown>> =>
+      this.request<Record<string, unknown>>('/integrations/transport/search-flights', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+
+    transportSearchNomadDeals: (payload: {
+      origin_city?: string
+      start_date?: string
+      end_date?: string
+      nights_in_dst_from?: number
+      nights_in_dst_to?: number
+      max_fly_duration?: number
+      limit?: number
+      currency?: string
+    }): Promise<Record<string, unknown>> =>
+      this.request<Record<string, unknown>>('/integrations/transport/search-nomad-deals', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+
+    mapsCitySpots: (city: string, maxResults = 10): Promise<Record<string, unknown>> =>
+      this.request<Record<string, unknown>>('/integrations/maps/city-spots', {
+        method: 'POST',
+        body: JSON.stringify({ city, max_results: maxResults }),
+      }),
+
+    mapsNearbySpots: (payload: {
       latitude: number
       longitude: number
       radius_meters?: number
       max_results?: number
-    }): Promise<Record<string, unknown>> => {
-      const params = new URLSearchParams({
-        latitude: String(payload.latitude),
-        longitude: String(payload.longitude),
-        radius_meters: String(payload.radius_meters ?? 1500),
-        max_results: String(payload.max_results ?? 5),
-      })
-      return this.request<Record<string, unknown>>(`/integrations/google/places/nearby?${params.toString()}`, { method: 'GET' })
-    },
+    }): Promise<Record<string, unknown>> =>
+      this.request<Record<string, unknown>>('/integrations/maps/nearby-spots', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
 
-    googleTransitDuration: (payload: {
+    mapsTransitDuration: (payload: {
       origin_lat: number
       origin_lng: number
       destination_lat: number
       destination_lng: number
-    }): Promise<Record<string, unknown>> => {
-      const params = new URLSearchParams({
-        origin_lat: String(payload.origin_lat),
-        origin_lng: String(payload.origin_lng),
-        destination_lat: String(payload.destination_lat),
-        destination_lng: String(payload.destination_lng),
-      })
-      return this.request<Record<string, unknown>>(`/integrations/google/routes/transit-duration?${params.toString()}`, {
-        method: 'GET',
-      })
-    },
+    }): Promise<Record<string, unknown>> =>
+      this.request<Record<string, unknown>>('/integrations/maps/transit-duration', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
 
-    ticketmasterEvents: (payload: {
+    eventsSearch: (payload: {
       city: string
       start_date: string
       end_date: string
       limit?: number
-    }): Promise<Record<string, unknown>> => {
-      const params = new URLSearchParams({
-        city: payload.city,
-        start_date: payload.start_date,
-        end_date: payload.end_date,
-        limit: String(payload.limit ?? 20),
-      })
-      return this.request<Record<string, unknown>>(`/integrations/ticketmaster/events?${params.toString()}`, { method: 'GET' })
-    },
-
-    openweatherForecast: (city: string): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>(`/integrations/openweather/forecast?city=${encodeURIComponent(city)}`, {
-        method: 'GET',
-      }),
-
-    climatiqRouteEmissions: (distanceKm: number, mode = 'passenger_train'): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>(
-        `/integrations/climatiq/route-emissions?distance_km=${distanceKm}&mode=${encodeURIComponent(mode)}`,
-        { method: 'GET' }
-      ),
-
-    numbeoCityBaseline: (city: string): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>(`/integrations/numbeo/city-baseline?city=${encodeURIComponent(city)}`, {
-        method: 'GET',
-      }),
-
-    amadeusSafetyScore: (latitude: number, longitude: number): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>(`/integrations/amadeus/safety-score?latitude=${latitude}&longitude=${longitude}`, {
-        method: 'GET',
-      }),
-
-    ragEnrichContext: (context: string, ragConfidence?: number): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/rag/enrich-context', {
+    }): Promise<Record<string, unknown>> =>
+      this.request<Record<string, unknown>>('/integrations/events/search', {
         method: 'POST',
-        body: JSON.stringify({ context, rag_confidence: ragConfidence }),
+        body: JSON.stringify(payload),
       }),
 
-    googleMapsGeocode: (argumentsPayload: Record<string, unknown>): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/google-maps/maps-geocode', {
+    weatherFiveDayForecast: (city: string): Promise<Record<string, unknown>> =>
+      this.request<Record<string, unknown>>('/integrations/weather/five-day-forecast', {
         method: 'POST',
-        body: JSON.stringify({ arguments: argumentsPayload }),
+        body: JSON.stringify({ city }),
       }),
 
-    googleMapsReverseGeocode: (argumentsPayload: Record<string, unknown>): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/google-maps/maps-reverse-geocode', {
+    financeCostBaseline: (city: string): Promise<Record<string, unknown>> =>
+      this.request<Record<string, unknown>>('/integrations/finance/cost-baseline', {
         method: 'POST',
-        body: JSON.stringify({ arguments: argumentsPayload }),
+        body: JSON.stringify({ city }),
       }),
 
-    googleMapsSearchPlaces: (argumentsPayload: Record<string, unknown>): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/google-maps/maps-search-places', {
+    safetyScore: (latitude: number, longitude: number): Promise<Record<string, unknown>> =>
+      this.request<Record<string, unknown>>('/integrations/safety/score', {
         method: 'POST',
-        body: JSON.stringify({ arguments: argumentsPayload }),
+        body: JSON.stringify({ latitude, longitude }),
       }),
 
-    googleMapsPlaceDetails: (argumentsPayload: Record<string, unknown>): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/google-maps/maps-place-details', {
+    environmentRouteEmissions: (distanceKm: number, mode = 'passenger_train'): Promise<Record<string, unknown>> =>
+      this.request<Record<string, unknown>>('/integrations/environment/route-emissions', {
         method: 'POST',
-        body: JSON.stringify({ arguments: argumentsPayload }),
+        body: JSON.stringify({ distance_km: distanceKm, mode }),
       }),
 
-    googleMapsDistanceMatrix: (argumentsPayload: Record<string, unknown>): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/google-maps/maps-distance-matrix', {
+    ragSearchLongTerm: (query: string, limit = 5): Promise<Record<string, unknown>> =>
+      this.request<Record<string, unknown>>('/integrations/rag/search-long-term', {
         method: 'POST',
-        body: JSON.stringify({ arguments: argumentsPayload }),
+        body: JSON.stringify({ query, limit }),
       }),
 
-    googleMapsElevation: (argumentsPayload: Record<string, unknown>): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/google-maps/maps-elevation', {
+    ragSearchShortTerm: (query: string, limit = 5): Promise<Record<string, unknown>> =>
+      this.request<Record<string, unknown>>('/integrations/rag/search-short-term', {
         method: 'POST',
-        body: JSON.stringify({ arguments: argumentsPayload }),
+        body: JSON.stringify({ query, limit }),
       }),
 
-    googleMapsDirections: (argumentsPayload: Record<string, unknown>): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/google-maps/maps-directions', {
+    ragStore: (payload: { content: string; memory_type?: string; metadata?: Record<string, unknown> }): Promise<Record<string, unknown>> =>
+      this.request<Record<string, unknown>>('/integrations/rag/store', {
         method: 'POST',
-        body: JSON.stringify({ arguments: argumentsPayload }),
+        body: JSON.stringify(payload),
       }),
-
-    openweatherGetFiveDayForecast: (argumentsPayload: Record<string, unknown>): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/openweather/get-five-day-forecast', {
-        method: 'POST',
-        body: JSON.stringify({ arguments: argumentsPayload }),
-      }),
-
-    openweatherGetCurrentWeather: (argumentsPayload: Record<string, unknown>): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/openweather/get-current-weather', {
-        method: 'POST',
-        body: JSON.stringify({ arguments: argumentsPayload }),
-      }),
-
-    openweatherGetCurrentAirPollution: (argumentsPayload: Record<string, unknown>): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/openweather/get-current-air-pollution', {
-        method: 'POST',
-        body: JSON.stringify({ arguments: argumentsPayload }),
-      }),
-
-    openweatherGetAirPollutionForecast: (argumentsPayload: Record<string, unknown>): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/openweather/get-air-pollution-forecast', {
-        method: 'POST',
-        body: JSON.stringify({ arguments: argumentsPayload }),
-      }),
-
-    openweatherGetDirectGeocoding: (argumentsPayload: Record<string, unknown>): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/openweather/get-direct-geocoding', {
-        method: 'POST',
-        body: JSON.stringify({ arguments: argumentsPayload }),
-      }),
-
-    openweatherGetReverseGeocoding: (argumentsPayload: Record<string, unknown>): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/openweather/get-reverse-geocoding', {
-        method: 'POST',
-        body: JSON.stringify({ arguments: argumentsPayload }),
-      }),
-
-    ticketmasterSearchEventsRaw: (argumentsPayload: Record<string, unknown>): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/ticketmaster/search-events', {
-        method: 'POST',
-        body: JSON.stringify({ arguments: argumentsPayload }),
-      }),
-
-    ticketmasterGetEventDetails: (argumentsPayload: Record<string, unknown>): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/ticketmaster/get-event-details', {
-        method: 'POST',
-        body: JSON.stringify({ arguments: argumentsPayload }),
-      }),
-
-    ticketmasterGetEventImages: (argumentsPayload: Record<string, unknown>): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/ticketmaster/get-event-images', {
-        method: 'POST',
-        body: JSON.stringify({ arguments: argumentsPayload }),
-      }),
-
-    ticketmasterGetClassifications: (argumentsPayload: Record<string, unknown>): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/ticketmaster/get-classifications', {
-        method: 'POST',
-        body: JSON.stringify({ arguments: argumentsPayload }),
-      }),
-
-    ticketmasterGetSegmentDetails: (argumentsPayload: Record<string, unknown>): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/ticketmaster/get-segment-details', {
-        method: 'POST',
-        body: JSON.stringify({ arguments: argumentsPayload }),
-      }),
-
-    ticketmasterGetGenreDetails: (argumentsPayload: Record<string, unknown>): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/ticketmaster/get-genre-details', {
-        method: 'POST',
-        body: JSON.stringify({ arguments: argumentsPayload }),
-      }),
-
-    ticketmasterGetSubgenreDetails: (argumentsPayload: Record<string, unknown>): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/ticketmaster/get-subgenre-details', {
-        method: 'POST',
-        body: JSON.stringify({ arguments: argumentsPayload }),
-      }),
-
-    ticketmasterGetVenues: (argumentsPayload: Record<string, unknown>): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/ticketmaster/get-venues', {
-        method: 'POST',
-        body: JSON.stringify({ arguments: argumentsPayload }),
-      }),
-
-    ticketmasterGetVenueDetailsEnhanced: (argumentsPayload: Record<string, unknown>): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/ticketmaster/get-venue-details-enhanced', {
-        method: 'POST',
-        body: JSON.stringify({ arguments: argumentsPayload }),
-      }),
-
-    ticketmasterGetAdvancedSuggestions: (argumentsPayload: Record<string, unknown>): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/ticketmaster/get-advanced-suggestions', {
-        method: 'POST',
-        body: JSON.stringify({ arguments: argumentsPayload }),
-      }),
-
-    apifySearchActors: (argumentsPayload: Record<string, unknown>): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/apify/search-actors', {
-        method: 'POST',
-        body: JSON.stringify({ arguments: argumentsPayload }),
-      }),
-
-    apifyFetchActorDetails: (argumentsPayload: Record<string, unknown>): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/apify/fetch-actor-details', {
-        method: 'POST',
-        body: JSON.stringify({ arguments: argumentsPayload }),
-      }),
-
-    apifyCallActor: (argumentsPayload: Record<string, unknown>): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/apify/call-actor', {
-        method: 'POST',
-        body: JSON.stringify({ arguments: argumentsPayload }),
-      }),
-
-    apifyGetActorRun: (argumentsPayload: Record<string, unknown>): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/apify/get-actor-run', {
-        method: 'POST',
-        body: JSON.stringify({ arguments: argumentsPayload }),
-      }),
-
-    apifyGetActorOutput: (argumentsPayload: Record<string, unknown>): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/apify/get-actor-output', {
-        method: 'POST',
-        body: JSON.stringify({ arguments: argumentsPayload }),
-      }),
-
-    apifySearchDocs: (argumentsPayload: Record<string, unknown>): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/apify/search-apify-docs', {
-        method: 'POST',
-        body: JSON.stringify({ arguments: argumentsPayload }),
-      }),
-
-    apifyFetchDocs: (argumentsPayload: Record<string, unknown>): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/apify/fetch-apify-docs', {
-        method: 'POST',
-        body: JSON.stringify({ arguments: argumentsPayload }),
-      }),
-
-    apifyGetLatestNewsOnTopic: (inputPayload: Record<string, unknown>): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/apify/get-latest-news-on-topic', {
-        method: 'POST',
-        body: JSON.stringify({ input: inputPayload }),
-      }),
-
-    syncExchangeRates: (): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/sync/exchange-rates', { method: 'POST' }),
-
-    syncNumbeoBaselines: (): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/sync/numbeo-baselines', { method: 'POST' }),
   }
 
   system = {

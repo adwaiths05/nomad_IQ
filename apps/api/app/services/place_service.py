@@ -2,7 +2,7 @@ from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.integrations.cache import cache_get_json, cache_set_json
-from app.integrations.external_apis import GooglePlacesClient, fetch_amadeus_safety_score
+from app.integrations.external_apis import MapsClient, fetch_amadeus_safety_score
 from app.models.place import Place
 from app.services.confidence import score_from_source
 
@@ -53,15 +53,15 @@ async def search_places(
     if not productive_request:
         return local_results
 
-    cache_key = f"google_places:productive:{city.lower()}"
+    cache_key = f"maps:productive:{city.lower()}"
     cached = await cache_get_json(cache_key)
     if isinstance(cached, list):
         external_results = cached
         source_type = "cached_api"
     else:
-        external_results = await GooglePlacesClient().city_productive_spots(city)
+        external_results = await MapsClient().city_productive_spots(city)
         await cache_set_json(cache_key, external_results, ttl_seconds=30 * 24 * 60 * 60)
-        source_type = "google_places"
+        source_type = "mcp_maps"
 
     created = []
     for item in external_results:
@@ -114,7 +114,7 @@ async def search_places(
             latitude=float(lat),
             longitude=float(lng),
             category=inferred_category,
-            description="Productive low-noise spot from Google Places.",
+            description="Productive low-noise spot from mcp-travel.",
             avg_cost=None,
             safety_rating=(safety_payload.get("score") if isinstance(safety_payload, dict) else None),
             confidence_score=score_from_source(source_type),

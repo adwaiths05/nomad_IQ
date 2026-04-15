@@ -24,6 +24,7 @@ class MCPToolCallRequest(BaseModel):
 class MCPStdioClient:
     def __init__(self, command: str) -> None:
         self.command = command
+        self.framing = os.getenv("MCP_STDIO_FRAMING", "ndjson").strip().lower()
         self.process: asyncio.subprocess.Process | None = None
         self.reader: asyncio.StreamReader | None = None
         self.writer: asyncio.StreamWriter | None = None
@@ -138,8 +139,12 @@ class MCPStdioClient:
             raise RuntimeError("MCP writer is not initialized")
 
         body = json.dumps(payload).encode("utf-8")
-        header = f"Content-Length: {len(body)}\r\n\r\n".encode("ascii")
-        self.writer.write(header + body)
+        if self.framing == "content-length":
+            header = f"Content-Length: {len(body)}\r\n\r\n".encode("ascii")
+            self.writer.write(header + body)
+        else:
+            # FastMCP Python servers in this repo use NDJSON framing.
+            self.writer.write(body + b"\n")
         await self.writer.drain()
 
     async def _wait_for_id(self, req_id: int, timeout: int) -> MCPResponse:
@@ -155,32 +160,59 @@ class MCPStdioClient:
         if self.reader is None:
             raise RuntimeError("MCP reader is not initialized")
 
-        headers: dict[str, str] = {}
         while True:
-            line = await self.reader.readline()
-            if not line:
+            first = await self.reader.readline()
+            if not first:
                 raise RuntimeError("MCP process closed stdout")
 
-            decoded = line.decode("utf-8", errors="replace").strip()
-            if decoded == "":
-                break
+            first_decoded = first.decode("utf-8", errors="replace").strip()
+            if not first_decoded:
+                continue
 
-            if ":" in decoded:
-                key, value = decoded.split(":", 1)
-                headers[key.strip().lower()] = value.strip()
+            # Ignore accidental stdout logs and keep reading until JSON-RPC frame appears.
+            if not (
+                first_decoded.startswith("{")
+                or first_decoded.startswith("[")
+                or first_decoded.lower().startswith("content-length:")
+            ):
+                continue
+            break
 
-        if "content-length" not in headers:
-            raise RuntimeError("Invalid MCP message: missing Content-Length")
+        # Fallback support for Content-Length framed servers.
+        if first_decoded.lower().startswith("content-length:"):
+            headers: dict[str, str] = {}
+            header_line = first_decoded
+            while True:
+                if ":" in header_line:
+                    key, value = header_line.split(":", 1)
+                    headers[key.strip().lower()] = value.strip()
 
-        length = int(headers["content-length"])
-        body = await self.reader.readexactly(length)
-        return json.loads(body.decode("utf-8"))
+                next_line = await self.reader.readline()
+                if not next_line:
+                    raise RuntimeError("MCP process closed stdout")
+                header_line = next_line.decode("utf-8", errors="replace").strip()
+                if header_line == "":
+                    break
+
+            if "content-length" not in headers:
+                raise RuntimeError("Invalid MCP message: missing Content-Length")
+
+            length = int(headers["content-length"])
+            body = await self.reader.readexactly(length)
+            return json.loads(body.decode("utf-8"))
+
+        # NDJSON framing: one JSON message per line.
+        return json.loads(first_decoded)
 
     async def _drain_stderr(self, stream: asyncio.StreamReader) -> None:
         while True:
             chunk = await stream.readline()
             if not chunk:
                 break
+            # Log stderr output so we can debug subprocess issues
+            import sys
+            sys.stderr.write(f"[MCP STDERR] {chunk.decode('utf-8', errors='replace')}")
+            sys.stderr.flush()
 
 
 command = os.getenv("MCP_COMMAND", "").strip()

@@ -2,10 +2,10 @@ from app.integrations.cache import cache_get_json, cache_set_json
 from app.integrations.external_apis import (
     ClimatiqClient,
     ExchangeRateClient,
-    GooglePlacesClient,
-    GoogleRoutesClient,
-    KiwiFlightsClient,
+    MapsClient,
+    MapsRoutesClient,
     OpenWeatherClient,
+    TransportClient,
     TicketmasterClient,
     fetch_amadeus_safety_score,
     fetch_numbeo_city_baseline,
@@ -13,9 +13,9 @@ from app.integrations.external_apis import (
 
 __all__ = [
     "ExchangeRateClient",
-    "GooglePlacesClient",
-    "GoogleRoutesClient",
-    "KiwiFlightsClient",
+    "MapsClient",
+    "MapsRoutesClient",
+    "TransportClient",
     "TicketmasterClient",
     "OpenWeatherClient",
     "ClimatiqClient",

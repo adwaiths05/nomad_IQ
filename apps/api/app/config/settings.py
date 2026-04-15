@@ -1,22 +1,12 @@
 from functools import lru_cache
 import importlib
+
 from pydantic import Field
 
 _pydantic_settings = importlib.util.find_spec("pydantic_settings")
-if _pydantic_settings is not None:
-    _settings_module = importlib.import_module("pydantic_settings")
 
-    class Settings(_settings_module.BaseSettings):
-        model_config = _settings_module.SettingsConfigDict(env_file=None, extra="ignore")
 
-else:
-    from pydantic.v1 import BaseSettings
-
-    class Settings(BaseSettings):
-        class Config:
-            env_file = None
-            extra = "ignore"
-
+class _SettingsFields:
     app_name: str = "Nomadiq API"
     app_env: str = "development"
     app_debug: bool = True
@@ -43,37 +33,53 @@ else:
     mcp_enabled: bool = True
     mcp_auth_token: str | None = None
 
-    # Server URLs for MCP wrappers (FastMCP or compatible HTTP frontends).
-    mcp_google_maps_server_url: str | None = None
-    mcp_ticketmaster_server_url: str | None = None
-    mcp_openweather_server_url: str | None = None
-    mcp_composio_server_url: str | None = None
-    mcp_custom_server_url: str | None = None
-    mcp_apify_server_url: str | None = None
+    mcp_travel_url: str = "http://mcp-travel:9000"
+    mcp_rag_url: str = "http://mcp-rag:9000"
 
-    # Tool mappings for each domain integration.
-    # Defaults are aligned to prebuilt MCP servers.
-    mcp_tool_google_places_city: str = "maps_search_places"
-    mcp_tool_google_places_nearby: str = "maps_search_places"
-    mcp_tool_google_routes_transit: str = "maps_distance_matrix"
-    mcp_tool_ticketmaster_events: str = "search_events"
-    mcp_tool_openweather_forecast: str = "get_five_day_forecast"
-    mcp_tool_exchange_rates: str = "exchange_rate_get_rates"
-    mcp_tool_numbeo_baseline: str = "numbeo_city_baseline"
-    mcp_tool_amadeus_safety: str = "amadeus_safety_score"
-    mcp_tool_climatiq_emissions: str = "climatiq_estimate_route_emissions"
-    mcp_tool_rag_enrich_context: str = "rag_enrich_plan_context"
-    mcp_tool_apify_call_actor: str = "call-actor"
-    mcp_tool_apify_get_actor_output: str = "get-actor-output"
-    mcp_apify_numbeo_actor_id: str | None = None
-    mcp_apify_news_actor_id: str = "GetLatestNewsOnTopic"
+    mcp_tool_travel_search_flights: str = "search_flights"
+    mcp_tool_travel_search_nomad_deals: str = "search_nomad_deals"
+    mcp_tool_travel_city_spots: str = "get_city_spots"
+    mcp_tool_travel_nearby_spots: str = "get_nearby_spots"
+    mcp_tool_travel_transit_duration: str = "calculate_transit_duration"
 
-    # Optional comma-separated fallback aliases to support provider-specific naming.
-    mcp_tool_google_places_city_aliases: str = "maps_search_places,GOOGLE_MAPS_TEXT_SEARCH,google_places_city_productive_spots"
-    mcp_tool_google_places_nearby_aliases: str = "maps_search_places,GOOGLE_MAPS_TEXT_SEARCH,google_places_nearby_productive_spots"
-    mcp_tool_google_routes_transit_aliases: str = "maps_distance_matrix,maps_directions,GOOGLE_MAPS_DISTANCE_MATRIX_API,google_routes_transit_duration_minutes"
-    mcp_tool_ticketmaster_events_aliases: str = "search_events,TICKETMASTER_GET_EVENTS,ticketmaster_search_events"
-    mcp_tool_openweather_forecast_aliases: str = "get_five_day_forecast,openweather_five_day_forecast"
+    mcp_tool_rag_search_long_term: str = "search_long_term_memory"
+    mcp_tool_rag_search_short_term: str = "search_short_term_memory"
+    mcp_tool_rag_store: str = "store_memory"
+
+    amadeus_client_id: str | None = None
+    amadeus_client_secret: str | None = None
+    amadeus_base_url: str = "https://test.api.amadeus.com"
+
+    openweather_api_key: str | None = None
+    openweather_base_url: str = "https://api.openweathermap.org/data/2.5"
+    openweather_geo_base_url: str = "https://api.openweathermap.org/geo/1.0"
+
+    ticketmaster_api_key: str | None = None
+    ticketmaster_base_url: str = "https://app.ticketmaster.com/discovery/v2"
+
+    exchange_api_base_url: str = "https://open.er-api.com/v6"
+    apify_api_token: str | None = None
+    numbeo_city_cost_actor_id: str | None = None
+
+    climatiq_api_key: str | None = None
+    climatiq_base_url: str = "https://api.climatiq.io"
+
+    safety_secondary_signal_enabled: bool = True
+
+if _pydantic_settings is not None:
+    _settings_module = importlib.import_module("pydantic_settings")
+
+    class Settings(_SettingsFields, _settings_module.BaseSettings):
+        model_config = _settings_module.SettingsConfigDict(env_file=None, extra="ignore")
+
+else:
+    from pydantic.v1 import BaseSettings
+
+    class Settings(_SettingsFields, BaseSettings):
+        class Config:
+            env_file = None
+            extra = "ignore"
+
 
 @lru_cache
 def get_settings() -> Settings:

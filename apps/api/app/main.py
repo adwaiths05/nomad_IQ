@@ -2,7 +2,6 @@ import asyncio
 from typing import Any
 
 import httpx
-import os
 from fastapi import FastAPI
 
 from app.config.settings import get_settings
@@ -73,7 +72,7 @@ async def _check_http_endpoint(client: httpx.AsyncClient, name: str, url: str) -
         }
 
 
-def _vllm_models_url(base_url: str) -> str:
+def _llm_models_url(base_url: str) -> str:
     base = base_url.rstrip("/")
     if base.endswith("/v1"):
         return f"{base}/models"
@@ -97,8 +96,8 @@ async def startup_health_check() -> dict[str, Any]:
         checks.append(
             await _check_http_endpoint(
                 client,
-                "llm.vllm_models",
-                _vllm_models_url(settings.llm_base_url),
+                "llm.models",
+                _llm_models_url(settings.llm_base_url),
             )
         )
 
@@ -114,13 +113,8 @@ async def startup_health_check() -> dict[str, Any]:
             checks.append(embedding_result)
 
         mcp_targets = [
-            ("mcp.google_maps", settings.mcp_google_maps_server_url),
-            ("mcp.ticketmaster", settings.mcp_ticketmaster_server_url),
-                ("mcp.kiwi", os.getenv("MCP_KIWI_SERVER_URL")),
-            ("mcp.openweather", settings.mcp_openweather_server_url),
-            ("mcp.apify", settings.mcp_apify_server_url),
-            ("mcp.composio", settings.mcp_composio_server_url),
-            ("mcp.custom", settings.mcp_custom_server_url),
+            ("mcp.travel", settings.mcp_travel_url),
+            ("mcp.rag", settings.mcp_rag_url),
         ]
         seen_urls: set[str] = set()
         for name, server_url in mcp_targets:
