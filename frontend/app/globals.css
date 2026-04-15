@@ -670,6 +670,109 @@ input[type='range'] {
   padding: 6.5rem 0;
 }
 
+.discovery-section {
+  background: linear-gradient(135deg, #f4fbf9 0%, #ecf7f5 100%);
+  color: #101319;
+  padding: 6.5rem 0;
+}
+
+.discovery-layout {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.discovery-controls {
+  position: sticky;
+  top: 92px;
+  border: 1px solid rgba(16, 19, 25, 0.1);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 12px 28px rgba(17, 25, 40, 0.08);
+  padding: 1rem;
+}
+
+.discovery-controls h3 {
+  margin: 0.3rem 0 0.5rem;
+  color: #0f1822;
+  font-size: 1.15rem;
+}
+
+.discovery-controls p {
+  color: #2f3d4e;
+  font-size: 0.88rem;
+  margin-bottom: 0.85rem;
+}
+
+.discovery-controls-inner {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.discovery-control-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+}
+
+.discovery-label {
+  display: block;
+  font-size: 0.75rem;
+  color: #4f6073;
+  margin-bottom: 0.22rem;
+}
+
+.discovery-input {
+  width: 100%;
+  border: 1px solid rgba(16, 19, 25, 0.15);
+  border-radius: 0.55rem;
+  background: #ffffff;
+  color: #101319;
+  padding: 0.58rem 0.62rem;
+  font-size: 0.85rem;
+}
+
+.discovery-range {
+  width: 100%;
+  accent-color: #17c8ba;
+}
+
+.discovery-run {
+  margin-top: 0.35rem;
+}
+
+.discovery-results {
+  min-width: 0;
+}
+
+.discovery-cards {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.discovery-mobile-controls {
+  display: none;
+  margin-bottom: 1rem;
+}
+
+.discovery-mobile-controls details {
+  border: 1px solid rgba(16, 19, 25, 0.12);
+  border-radius: 0.8rem;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 0.75rem;
+}
+
+.discovery-mobile-controls summary {
+  cursor: pointer;
+  color: #0f1822;
+  font-weight: 700;
+}
+
+.desktop-only {
+  display: block;
+}
+
 .tripcast-section {
   background: linear-gradient(135deg, #f0faf9 0%, #e8f5f3 100%);
   color: #101319;
@@ -1172,6 +1275,22 @@ input[type='range'] {
     grid-template-columns: 1fr 1fr;
   }
 
+  .discovery-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .desktop-only {
+    display: none;
+  }
+
+  .discovery-mobile-controls {
+    display: block;
+  }
+
+  .discovery-cards {
+    grid-template-columns: 1fr 1fr;
+  }
+
   .autopilot-grid {
     grid-template-columns: 1fr;
   }
@@ -1200,6 +1319,14 @@ input[type='range'] {
   .tripcast-cards,
   .stats-grid,
   .date-row {
+    grid-template-columns: 1fr;
+  }
+
+  .discovery-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .discovery-control-row {
     grid-template-columns: 1fr;
   }
 

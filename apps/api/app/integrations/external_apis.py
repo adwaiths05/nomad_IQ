@@ -169,6 +169,73 @@ class TicketmasterClient:
         return result
 
 
+class EventbriteClient:
+    cache_ttl_seconds = 12 * 60 * 60
+
+    def __init__(self) -> None:
+        self.settings = get_settings()
+
+    async def search_events(self, city: str, start_date: date, end_date: date, limit: int = 20) -> list[dict[str, Any]]:
+        if not self.settings.eventbrite_api_token:
+            return []
+
+        headers = {
+            "Authorization": f"Bearer {self.settings.eventbrite_api_token}",
+            "Content-Type": "application/json",
+        }
+        params = {
+            "location.address": city,
+            "start_date.range_start": f"{_date_to_str(start_date)}T00:00:00Z",
+            "start_date.range_end": f"{_date_to_str(end_date)}T23:59:59Z",
+            "expand": "venue,ticket_availability",
+            "sort_by": "date",
+            "page_size": max(1, min(limit, 50)),
+        }
+
+        async with httpx.AsyncClient(timeout=25) as client:
+            response = await client.get(f"{self.settings.eventbrite_base_url.rstrip('/')}/events/search/", headers=headers, params=params)
+            if response.status_code >= 400:
+                return []
+            payload = response.json()
+
+        rows = payload.get("events") if isinstance(payload, dict) else None
+        if not isinstance(rows, list):
+            return []
+
+        result: list[dict[str, Any]] = []
+        for event in rows:
+            if not isinstance(event, dict):
+                continue
+
+            venue = event.get("venue") if isinstance(event.get("venue"), dict) else {}
+            category = "local_event"
+            if isinstance(event.get("category_id"), str) and event.get("category_id"):
+                category = "local_event"
+
+            start_block = event.get("start") if isinstance(event.get("start"), dict) else {}
+            end_block = event.get("end") if isinstance(event.get("end"), dict) else {}
+            ticket_block = event.get("ticket_availability") if isinstance(event.get("ticket_availability"), dict) else {}
+            is_free = bool(event.get("is_free"))
+
+            result.append(
+                {
+                    "id": event.get("id"),
+                    "name": event.get("name", {}).get("text") if isinstance(event.get("name"), dict) else (event.get("name") or "Untitled Event"),
+                    "venue": venue.get("name") or venue.get("address", {}).get("localized_address_display") if isinstance(venue.get("address"), dict) else venue.get("name"),
+                    "start_date": start_block.get("local") or start_block.get("utc") or _date_to_str(start_date),
+                    "end_date": end_block.get("local") or end_block.get("utc") or _date_to_str(end_date),
+                    "category": category,
+                    "description": event.get("url"),
+                    "popularity": 0.55,
+                    "price_hint": 0.0 if is_free else 300.0,
+                    "ticket_status": ticket_block.get("is_sold_out") is False,
+                    "source": "eventbrite",
+                }
+            )
+
+        return result
+
+
 class TransportClient:
     cache_ttl_seconds = 2 * 60 * 60
     nomad_cache_ttl_seconds = 6 * 60 * 60
@@ -463,66 +530,160 @@ async def fetch_numbeo_city_baseline(city: str) -> dict[str, Any] | None:
     }
 
 
-async def _amadeus_token(settings) -> str | None:
-    if not settings.amadeus_client_id or not settings.amadeus_client_secret:
-        return None
-
-    async with httpx.AsyncClient(timeout=20) as client:
-        response = await client.post(
-            f"{settings.amadeus_base_url.rstrip('/')}/v1/security/oauth2/token",
-            data={
-                "grant_type": "client_credentials",
-                "client_id": settings.amadeus_client_id,
-                "client_secret": settings.amadeus_client_secret,
-            },
-        )
-        if response.status_code >= 400:
-            return None
-        body = response.json()
-
-    token = body.get("access_token") if isinstance(body, dict) else None
-    return str(token) if token else None
+def _normalize_time_of_day(time_of_day: str | None, local_hour: int | None) -> str:
+    if isinstance(time_of_day, str) and time_of_day.strip():
+        return time_of_day.strip().lower()
+    if local_hour is None:
+        return "unknown"
+    if 5 <= local_hour < 12:
+        return "morning"
+    if 12 <= local_hour < 17:
+        return "afternoon"
+    if 17 <= local_hour < 22:
+        return "evening"
+    return "night"
 
 
-async def fetch_amadeus_safety_score(latitude: float, longitude: float) -> dict[str, Any] | None:
+def _event_crowd_risk(event_count: int | None) -> float:
+    if event_count is None:
+        return 0.25
+    return max(0.0, min(float(event_count) / 20.0, 1.0))
+
+
+def _time_risk_bucket(time_bucket: str) -> float:
+    mapping = {
+        "morning": 0.15,
+        "afternoon": 0.20,
+        "evening": 0.35,
+        "night": 0.55,
+        "unknown": 0.30,
+    }
+    return mapping.get(time_bucket, 0.30)
+
+
+def _location_type_risk(location_type: str | None) -> float:
+    normalized = (location_type or "unknown").strip().lower()
+    mapping = {
+        "tourist": 0.35,
+        "residential": 0.20,
+        "commercial": 0.25,
+        "isolated": 0.60,
+        "transit_hub": 0.45,
+        "unknown": 0.30,
+    }
+    return mapping.get(normalized, 0.30)
+
+
+async def fetch_contextual_safety_score(
+    latitude: float,
+    longitude: float,
+    *,
+    city: str | None = None,
+    event_count: int | None = None,
+    time_of_day: str | None = None,
+    location_type: str | None = None,
+) -> dict[str, Any] | None:
     settings = get_settings()
     if not settings.safety_secondary_signal_enabled:
         return None
 
-    token = await _amadeus_token(settings)
-    if not token:
+    if not settings.openweather_api_key:
         return {
             "score": None,
-            "scores": {},
-            "source": "amadeus_unconfigured",
+            "core_signals": {
+                "aqi": None,
+                "uv_index": None,
+                "temperature_c": None,
+                "heat_index_c": None,
+            },
+            "context_signals": {
+                "event_count": event_count,
+                "time_of_day": time_of_day or "unknown",
+                "location_type": location_type or "unknown",
+            },
+            "source": "openweather_unconfigured",
             "note": "secondary_signal_only",
         }
 
-    headers = {"Authorization": f"Bearer {token}"}
-    params = {"latitude": latitude, "longitude": longitude}
     async with httpx.AsyncClient(timeout=25) as client:
-        response = await client.get(
-            f"{settings.amadeus_base_url.rstrip('/')}/v1/safety/safety-rated-locations",
-            headers=headers,
-            params=params,
+        weather_response = await client.get(
+            f"{settings.openweather_base_url.rstrip('/')}/weather",
+            params={"lat": latitude, "lon": longitude, "appid": settings.openweather_api_key, "units": "metric"},
         )
-        if response.status_code >= 400:
-            return {
-                "score": None,
-                "scores": {},
-                "source": "amadeus",
-                "note": "secondary_signal_only",
-            }
-        payload = response.json()
+        aqi_response = await client.get(
+            f"{settings.openweather_base_url.rstrip('/')}/air_pollution",
+            params={"lat": latitude, "lon": longitude, "appid": settings.openweather_api_key},
+        )
+        onecall_response = await client.get(
+            f"{settings.openweather_onecall_base_url.rstrip('/')}/onecall",
+            params={
+                "lat": latitude,
+                "lon": longitude,
+                "exclude": "minutely,hourly,daily,alerts",
+                "appid": settings.openweather_api_key,
+                "units": "metric",
+            },
+        )
 
-    rows = payload.get("data") if isinstance(payload, dict) else None
-    top = rows[0] if isinstance(rows, list) and rows and isinstance(rows[0], dict) else {}
-    safety_scores = top.get("safetyScores") if isinstance(top.get("safetyScores"), dict) else {}
-    values = [float(v) for v in safety_scores.values() if isinstance(v, (int, float))]
-    total = round(sum(values) / len(values), 2) if values else None
+    weather_payload = weather_response.json() if weather_response.status_code < 400 else {}
+    aqi_payload = aqi_response.json() if aqi_response.status_code < 400 else {}
+    onecall_payload = onecall_response.json() if onecall_response.status_code < 400 else {}
+
+    weather_main = weather_payload.get("main") if isinstance(weather_payload, dict) and isinstance(weather_payload.get("main"), dict) else {}
+    aqi_list = aqi_payload.get("list") if isinstance(aqi_payload, dict) and isinstance(aqi_payload.get("list"), list) else []
+    current = onecall_payload.get("current") if isinstance(onecall_payload, dict) and isinstance(onecall_payload.get("current"), dict) else {}
+
+    aqi_value = None
+    if aqi_list and isinstance(aqi_list[0], dict):
+        main_block = aqi_list[0].get("main")
+        if isinstance(main_block, dict) and isinstance(main_block.get("aqi"), (int, float)):
+            aqi_value = int(main_block.get("aqi"))
+
+    uv_index = current.get("uvi") if isinstance(current.get("uvi"), (int, float)) else None
+    temp_c = weather_main.get("temp") if isinstance(weather_main.get("temp"), (int, float)) else None
+    heat_index_c = weather_main.get("feels_like") if isinstance(weather_main.get("feels_like"), (int, float)) else None
+
+    timezone_offset = weather_payload.get("timezone") if isinstance(weather_payload, dict) and isinstance(weather_payload.get("timezone"), (int, float)) else 0
+    local_hour = None
+    if isinstance(timezone_offset, (int, float)):
+        from datetime import datetime, timezone, timedelta
+
+        local_time = datetime.now(timezone.utc) + timedelta(seconds=float(timezone_offset))
+        local_hour = int(local_time.hour)
+
+    normalized_time = _normalize_time_of_day(time_of_day, local_hour)
+
+    aqi_risk = max(0.0, min(((aqi_value or 3) - 1) / 4.0, 1.0))
+    uv_risk = max(0.0, min((float(uv_index) if uv_index is not None else 5.0) / 11.0, 1.0))
+    heat_anchor = float(heat_index_c) if heat_index_c is not None else (float(temp_c) if temp_c is not None else 28.0)
+    heat_risk = max(0.0, min((heat_anchor - 22.0) / 18.0, 1.0))
+
+    crowd_risk = _event_crowd_risk(event_count)
+    time_risk = _time_risk_bucket(normalized_time)
+    location_risk = _location_type_risk(location_type)
+
+    core_risk = (0.4 * aqi_risk) + (0.3 * uv_risk) + (0.3 * heat_risk)
+    context_risk = (0.45 * crowd_risk) + (0.25 * time_risk) + (0.30 * location_risk)
+    combined_risk = (0.70 * core_risk) + (0.30 * context_risk)
+    safety_score = round(max(0.0, min((1.0 - combined_risk) * 100.0, 100.0)), 2)
+
     return {
-        "score": total,
-        "scores": safety_scores,
-        "source": "amadeus",
+        "score": safety_score,
+        "core_signals": {
+            "aqi": aqi_value,
+            "uv_index": uv_index,
+            "temperature_c": temp_c,
+            "heat_index_c": heat_index_c,
+        },
+        "context_signals": {
+            "event_count": event_count,
+            "crowd_risk": round(crowd_risk, 3),
+            "time_of_day": normalized_time,
+            "time_risk": round(time_risk, 3),
+            "location_type": (location_type or "unknown").strip().lower(),
+            "location_risk": round(location_risk, 3),
+            "city": city,
+        },
+        "source": "openweather_plus_context",
         "note": "secondary_signal_only",
     }

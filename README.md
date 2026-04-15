@@ -1,12 +1,3 @@
-# NomadIQ
-
-NomadIQ is an AI travel decision engine that plans, explains, and continuously adapts trips around traveler context.
-
-## Product Pillars
-
-1. Traveler Intelligence
-2. AI Trip Generator
-3. Live Situation Room
 # 🌍 Nomadiq
 
 > **Hybrid RAG Travel AI with Domain-Aware Memory and Direct Backend Adapters**
@@ -57,7 +48,8 @@ Gateway Response with Context Trace:
     ↓
 Direct Adapters (for missing signals):
     ├─ OpenWeather (objective wellness signals)
-    ├─ Amadeus (flights + safety score as secondary signal)
+  ├─ Travelpayouts (flights + prices + booking links)
+  ├─ Aviationstack (flight status + schedules)
     ├─ MCP-Travel (maps + transit)
     ├─ Ticketmaster (events)
     └─ Climatiq/Numbeo (environment + cost baselines)
@@ -92,7 +84,8 @@ Direct Adapters (for missing signals):
 [![MCP-RAG](https://img.shields.io/badge/MCP--RAG-Memory-9C27B0?style=flat)](https://modelcontextprotocol.io/)
 
 ### Direct Backend Adapters (No MCP Wrapping)
-[![Amadeus](https://img.shields.io/badge/Amadeus-Flight%20Search-0066CC?style=flat)](https://www.amadeus.com/en)
+[![Travelpayouts](https://img.shields.io/badge/Travelpayouts-Flight%20Planning-0066CC?style=flat)](https://travelpayouts.com/)
+[![Aviationstack](https://img.shields.io/badge/Aviationstack-Live%20Flight%20Status-2F8CFF?style=flat)](https://aviationstack.com/)
 [![OpenWeather](https://img.shields.io/badge/OpenWeather-Wellness%20Signals-FA7E1E?style=flat)](https://openweathermap.org/api)
 [![Ticketmaster](https://img.shields.io/badge/Ticketmaster-Events-FF0000?style=flat)](https://developer.ticketmaster.com/)
 [![Climatiq](https://img.shields.io/badge/Climatiq-Emissions-4CAF50?style=flat)](https://www.climatiq.io/)
@@ -117,7 +110,7 @@ trippy/
 │   ├── app/
 │   │   ├── routes/          # HTTP endpoints (stateless gateway pattern)
 │   │   ├── services/        # Hybrid RAG, direct API adapters
-│   │   ├── integrations/    # External APIs (OpenWeather, Amadeus, etc.)
+│   │   ├── integrations/    # External APIs (OpenWeather, Travelpayouts, etc.)
 │   │   ├── schemas/         # Pydantic request/response models
 │   │   ├── models/          # SQLAlchemy ORM (pgvector support)
 │   │   ├── config/          # Settings, environment variables
@@ -179,11 +172,28 @@ Makes the backend a lightweight orchestrator (no LLM agent loop overhead).
 ### ✅ Direct Backend Adapters (No MCP Wrapping)
 Circumvent unnecessary abstraction layers for speed & reliability:
 - **OpenWeather** → Objective wellness signals (AQI, UV, weather, heat index)
-- **Amadeus** → Flights (primary) + safety score (secondary signal, marked explicitly)
-- **Ticketmaster** → Events (direct HTTP)
+- **Travelpayouts** → Flights, routes, ticket prices, booking links
+- **Aviationstack** → Real-time flight status and schedule visibility
+- **Ticketmaster + Eventbrite** → Big + local/social event coverage
+- **Festival fallback layer** → Static/local festival calendars for sparse cities
 - **Climatiq** → Route emissions with deterministic fallback
 - **Numbeo/Apify** → City cost baselines
 - **Exchange API** → Real-time FX rates
+
+### ✅ Discovery Layer (Decision Engine)
+Nomadiq does not treat events as a standalone API call. It runs a fused discovery engine:
+
+```
+Discovery Engine =
+  Events (Ticketmaster + Eventbrite + festival fallback)
++ Places (OSM/Photon via mcp-travel)
++ Cost signals (Numbeo/Apify baseline)
++ Weather/context (OpenWeather + time-of-day + location type)
++ Intelligence scoring (worth, crowd, uniqueness, budget fit)
+```
+
+This powers actionable outputs like:
+"Coffee + local acoustic event (estimated cost, transit minutes, crowd level)."
 
 ### ✅ Deterministic SHA256 Embeddings
 ```python
@@ -253,7 +263,7 @@ Response includes structured trace:
 - Docker & Docker Compose
 - Python 3.11+
 - Node.js 18+
-- API keys: Amadeus, OpenWeather, Ticketmaster, Apify (optional), Climatiq (optional)
+- API keys: Travelpayouts, Aviationstack (optional), OpenWeather, Ticketmaster, Apify (optional), Climatiq (optional)
 
 ### Quick Start (Docker One-Command)
 
@@ -311,7 +321,8 @@ docker compose up --build
    - Compress for token efficiency
 
 5. **Graceful Adapter Fallback** (if memory sparse)
-   - Call Amadeus → Search flights June 1–7 to Tokyo
+  - Call Travelpayouts → Search flights June 1–7 to Tokyo
+  - Call Aviationstack → Fetch real-time delay/status for shortlisted flights
    - Call OpenWeather → 7-day forecast (heat index, AQI for wellness)
    - Call Ticketmaster → June events in Tokyo
    - Store results in short-term memory for future sessions
@@ -545,7 +556,7 @@ async def _build_gateway_plan(...) -> dict:
     ↓ [insufficient]
 2. Try MCP tools (mcp-travel for maps/flights, mcp-rag for memory)
     ↓ [timeout/fail]
-3. Try direct adapters (OpenWeather, Amadeus, etc.)
+3. Try direct adapters (OpenWeather, Travelpayouts, Ticketmaster, etc.)
     ↓ [all fail]
 4. Emit: "Based on available memory + signals..."
 ```
@@ -594,10 +605,11 @@ def _embed(text: str, dims: int = 64) -> list[float]:
 DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/nomadiq
 
 # Direct API Credentials
-AMADEUS_CLIENT_ID=your_id
-AMADEUS_CLIENT_SECRET=your_secret
+TRAVELPAYOUTS_API_TOKEN=your_token
+AVIATIONSTACK_API_KEY=your_key_optional
 OPENWEATHER_API_KEY=your_key
 TICKETMASTER_API_KEY=your_key
+EVENTBRITE_API_TOKEN=your_key_optional
 
 # Optional Direct Adapters
 CLIMATIQ_API_KEY=your_key
@@ -731,7 +743,8 @@ The Dockerfile-based setup enables easy k8s deployment:
 - **MCP Protocol:** https://modelcontextprotocol.io
 - **FastAPI Async:** https://fastapi.tiangolo.com/async-sql-databases/
 - **Hash-based embeddings:** https://docs.python.org/3/library/hashlib.html
-- **Amadeus Flight API:** https://developers.amadeus.com/
+- **Travelpayouts API:** https://support.travelpayouts.com/hc/en-us/categories/200358962-API
+- **Aviationstack API:** https://aviationstack.com/documentation
 - **OpenWeather API:** https://openweathermap.org/api
 
 ---
@@ -783,7 +796,7 @@ Browser
 
 ### mcp-travel
 Domain boundary for travel search and movement intelligence:
-- `search_flights` (Amadeus primary)
+- `search_flights` (Travelpayouts primary)
 - `search_nomad_deals`
 - `get_city_spots`
 - `get_nearby_spots`
@@ -800,34 +813,36 @@ Memory infrastructure boundary:
 
 ## Safety Policy
 
-Amadeus safety score is supported, but only as a secondary signal.
+Safety is computed from OpenWeather core signals plus contextual signals.
 
 Why:
-- aggregated score alone is vague
-- not strongly time-aware
-- can be biased/outdated
-- not actionable enough for ranking decisions
+- AQI, UV, and heat are objective and time-aware
+- event crowding and time-of-day improve situational context
+- location type (tourist vs isolated) adds practical risk context
 
 Primary wellness/safety signals used by backend:
 - AQI
 - UV / heat context
 - weather conditions
 - event/crowd context
-- transit availability context
+- time of day
+- location type (tourist vs isolated)
 
 Rule:
-- Keep safety score for explainability/fallback hints.
+- Keep safety output as a secondary explainability signal.
 - Do not make it the core ranking driver.
 
 ## Direct Backend Integrations
 
 The backend calls these directly (no dedicated MCP container):
 - OpenWeather
+- Travelpayouts
+- Aviationstack
 - Ticketmaster
 - Exchange rates API
 - Apify Numbeo baseline (with deterministic fallback)
 - Climatiq (with deterministic fallback)
-- Amadeus safety (secondary only)
+- Contextual safety model (OpenWeather + events/time/location)
 
 ## Quick Start
 
@@ -856,6 +871,8 @@ docker compose up --build
 - `POST /integrations/maps/nearby-spots`
 - `POST /integrations/maps/transit-duration`
 - `POST /integrations/events/search`
+- `POST /integrations/events/search-local`
+- `POST /integrations/events/discover`
 - `POST /integrations/weather/five-day-forecast`
 - `POST /integrations/wellness/objective-signals`
 - `POST /integrations/finance/exchange-rates`

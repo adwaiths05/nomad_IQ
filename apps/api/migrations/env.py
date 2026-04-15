@@ -16,13 +16,14 @@ if str(BASE_DIR) not in sys.path:
 
 from app.config.settings import get_settings
 from app.db.base import Base
+from app.db.url import normalize_async_database_url
 
 config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 settings = get_settings()
-config.set_main_option("sqlalchemy.url", settings.database_url)
+config.set_main_option("sqlalchemy.url", normalize_async_database_url(settings.database_url))
 
 target_metadata = Base.metadata
 

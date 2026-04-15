@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { apiClient } from '../lib/api/client'
 
 const slides = [
   { city: 'Tokyo', image: 'https://images.pexels.com/photos/36290072/pexels-photo-36290072.jpeg', accentColor: '#297bee', headlineColor: '#F2F0EA', subColor: '#9090b0' },
@@ -37,7 +38,7 @@ const integrationCards = [
   },
   {
     provider: 'backend-events',
-    description: 'Local event intelligence via Ticketmaster direct adapter',
+    description: 'Local event intelligence via Ticketmaster + Eventbrite + festival fallback',
     endpoint: 'POST /integrations/events/search',
   },
   {
@@ -47,7 +48,7 @@ const integrationCards = [
   },
   {
     provider: 'backend-safety-secondary',
-    description: 'Amadeus safety score as explainability hint, not ranking driver',
+    description: 'OpenWeather core safety (AQI/UV/heat) + context signals (events/time/location type)',
     endpoint: 'POST /integrations/safety/score',
   },
   {
@@ -88,6 +89,18 @@ export default function HomePage() {
   const [progressWidth, setProgressWidth] = useState(0)
   const [selectedDot, setSelectedDot] = useState(0)
   const [cityNameBlur, setCityNameBlur] = useState(false)
+  const [discoveryLoading, setDiscoveryLoading] = useState(false)
+  const [discoveryError, setDiscoveryError] = useState<string | null>(null)
+  const [discoveryItems, setDiscoveryItems] = useState<Array<Record<string, unknown>>>([])
+  const [discoveryCity, setDiscoveryCity] = useState(slides[0].city)
+  const [discoveryStartDate, setDiscoveryStartDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [discoveryEndDate, setDiscoveryEndDate] = useState(() => {
+    const next = new Date()
+    next.setDate(next.getDate() + 2)
+    return next.toISOString().slice(0, 10)
+  })
+  const [discoveryTimeOfDay, setDiscoveryTimeOfDay] = useState('evening')
+  const [discoveryLocationType, setDiscoveryLocationType] = useState('tourist')
 
   const [stats, setStats] = useState({
     trips: 0,
@@ -137,6 +150,127 @@ export default function HomePage() {
       sectionObserver.disconnect()
     }
   }, [])
+
+  const loadDiscovery = async (payloadOverride?: Record<string, unknown>) => {
+    setDiscoveryLoading(true)
+    setDiscoveryError(null)
+    try {
+      const payload = {
+        city: discoveryCity,
+        start_date: discoveryStartDate,
+        end_date: discoveryEndDate,
+        budget_cap: budgetValue,
+        time_of_day: discoveryTimeOfDay,
+        location_type: discoveryLocationType,
+        max_results: 3,
+        ...(payloadOverride || {}),
+      }
+
+      const response = await apiClient.integrations.eventsDiscover(payload)
+      const rows = response && typeof response === 'object' ? (response as Record<string, unknown>).recommendations : null
+      setDiscoveryItems(Array.isArray(rows) ? (rows as Array<Record<string, unknown>>) : [])
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not load discovery suggestions.'
+      setDiscoveryError(message)
+      setDiscoveryItems([])
+    } finally {
+      setDiscoveryLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    setDiscoveryCity(slides[activeCityIndex].city)
+  }, [activeCityIndex])
+
+  useEffect(() => {
+    loadDiscovery()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const renderDiscoveryControls = () => (
+    <>
+      <label className="discovery-label" htmlFor="discovery-city">City</label>
+      <input
+        id="discovery-city"
+        className="discovery-input"
+        type="text"
+        value={discoveryCity}
+        onChange={(event) => setDiscoveryCity(event.target.value)}
+        placeholder="Tokyo"
+      />
+
+      <div className="discovery-control-row">
+        <div>
+          <label className="discovery-label" htmlFor="discovery-start">Start</label>
+          <input
+            id="discovery-start"
+            className="discovery-input"
+            type="date"
+            value={discoveryStartDate}
+            onChange={(event) => setDiscoveryStartDate(event.target.value)}
+          />
+        </div>
+        <div>
+          <label className="discovery-label" htmlFor="discovery-end">End</label>
+          <input
+            id="discovery-end"
+            className="discovery-input"
+            type="date"
+            value={discoveryEndDate}
+            onChange={(event) => setDiscoveryEndDate(event.target.value)}
+          />
+        </div>
+      </div>
+
+      <label className="discovery-label" htmlFor="discovery-budget">Budget cap: €{budgetValue}</label>
+      <input
+        id="discovery-budget"
+        className="discovery-range"
+        type="range"
+        min={500}
+        max={3000}
+        step={50}
+        value={budgetValue}
+        onChange={(event) => setBudgetValue(Number(event.target.value))}
+      />
+
+      <div className="discovery-control-row">
+        <div>
+          <label className="discovery-label" htmlFor="discovery-time">Time</label>
+          <select
+            id="discovery-time"
+            className="discovery-input"
+            value={discoveryTimeOfDay}
+            onChange={(event) => setDiscoveryTimeOfDay(event.target.value)}
+          >
+            <option value="morning">Morning</option>
+            <option value="afternoon">Afternoon</option>
+            <option value="evening">Evening</option>
+            <option value="night">Night</option>
+          </select>
+        </div>
+        <div>
+          <label className="discovery-label" htmlFor="discovery-location">Area type</label>
+          <select
+            id="discovery-location"
+            className="discovery-input"
+            value={discoveryLocationType}
+            onChange={(event) => setDiscoveryLocationType(event.target.value)}
+          >
+            <option value="tourist">Tourist</option>
+            <option value="commercial">Commercial</option>
+            <option value="residential">Residential</option>
+            <option value="isolated">Isolated</option>
+            <option value="transit_hub">Transit hub</option>
+          </select>
+        </div>
+      </div>
+
+      <button className="teal-button discovery-run" type="button" onClick={() => loadDiscovery()}>
+        Run Discovery
+      </button>
+    </>
+  )
 
   useEffect(() => {
     const statsObserver = new IntersectionObserver(
@@ -540,6 +674,72 @@ export default function HomePage() {
                 choose what matters most.
               </p>
             </article>
+          </div>
+        </div>
+      </section>
+
+      <section className="discovery-section">
+        <div className="section-shell">
+          <p className="section-label">Discovery Layer</p>
+          <h2 className="section-title">Local Event Intelligence in action.</h2>
+          <p className="section-copy">
+            This section calls <strong>/integrations/events/discover</strong> and fuses Ticketmaster + Eventbrite + places + cost + weather/context into ranked suggestions.
+          </p>
+
+          <div className="discovery-mobile-controls">
+            <details>
+              <summary>Adjust city, dates, budget, and context</summary>
+              <div className="discovery-controls-inner">{renderDiscoveryControls()}</div>
+            </details>
+          </div>
+
+          <div className="discovery-layout">
+            <aside className="discovery-controls desktop-only">
+              <p className="section-label">Inputs</p>
+              <h3>Tune the decision engine</h3>
+              <p>Set constraints, then run discovery to rank local event + place combinations.</p>
+              <div className="discovery-controls-inner">{renderDiscoveryControls()}</div>
+            </aside>
+
+            <div className="discovery-results">
+              {discoveryLoading && <p className="section-copy">Loading discovery recommendations...</p>}
+              {!discoveryLoading && discoveryError && <p className="section-copy">Discovery unavailable: {discoveryError}</p>}
+
+              {!discoveryLoading && !discoveryError && discoveryItems.length > 0 && (
+                <div className="pillars-grid discovery-cards">
+                  {discoveryItems.map((item, index) => {
+                    const eventObj = (item.event as Record<string, unknown> | undefined) || {}
+                    const placeObj = (item.place as Record<string, unknown> | undefined) || {}
+                    const eventName = String(eventObj.name || 'Local event')
+                    const placeName = String(placeObj.name || 'Nearby cafe')
+                    const cost = Number(item.estimated_cost ?? 0)
+                    const transit = Number(item.estimated_transit_minutes ?? 0)
+                    const crowd = String(item.crowd_level || 'medium')
+                    const score = Number(item.discovery_score ?? 0)
+
+                    return (
+                      <article className="pillar-card" key={`discovery-${index}`}>
+                        <div className="pillar-visual planning-visual active">
+                          <p className="typing-line">{eventName}</p>
+                          <div className="planning-skeleton" />
+                          <div className="plan-mini-cards">
+                            <span>{placeName}</span>
+                            <span>₹{cost.toFixed(0)} est.</span>
+                            <span>{transit} min away</span>
+                          </div>
+                        </div>
+
+                        <h3>{placeName} + {eventName}</h3>
+                        <p>
+                          {`Coffee + local event (₹${cost.toFixed(0)}, ${transit} min away, ${crowd} crowd)`}
+                        </p>
+                        <p className="recruiter-note">Discovery score: {score.toFixed(1)} / 100</p>
+                      </article>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </section>

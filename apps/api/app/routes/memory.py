@@ -14,16 +14,26 @@ from app.services.memory_service import (
 router = APIRouter(prefix="/memory", tags=["memory"])
 
 
+def _to_memory_read(row) -> MemoryRead:
+    return MemoryRead(
+        id=row.id,
+        user_id=row.user_id,
+        group_id=row.group_id,
+        content=row.content,
+        metadata=row.model_metadata,
+    )
+
+
 @router.post("", response_model=MemoryRead)
 async def create_memory(payload: MemoryCreate, db: AsyncSession = Depends(get_db)) -> MemoryRead:
     row = await add_memory(db, payload)
-    return MemoryRead.model_validate(row)
+    return _to_memory_read(row)
 
 
 @router.post("/search", response_model=list[MemoryRead])
 async def search_memory(payload: MemorySearchRequest, db: AsyncSession = Depends(get_db)) -> list[MemoryRead]:
     rows = await search_memories(db, payload.query, payload.user_id, payload.group_id, payload.limit)
-    return [MemoryRead.model_validate(row) for row in rows]
+    return [_to_memory_read(row) for row in rows]
 
 
 @router.post("/search-tool", response_model=MemoryToolSearchResponse)

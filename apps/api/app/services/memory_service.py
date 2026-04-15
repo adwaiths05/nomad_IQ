@@ -50,7 +50,7 @@ async def add_memory(db: AsyncSession, payload: MemoryCreate) -> MemoryEmbedding
         group_id=payload.group_id,
         content=payload.content,
         embedding=vector,
-        metadata=metadata,
+        model_metadata=metadata,
     )
     db.add(memory)
     await db.commit()
@@ -99,7 +99,7 @@ async def search_memories_hybrid(
     scored: list[MemorySearchResult] = []
     total_rows = len(rows)
     for rank, (memory, distance) in enumerate(rows):
-        current_memory_type = _extract_memory_type(memory.metadata)
+        current_memory_type = _extract_memory_type(memory.model_metadata)
         if requested_memory_type and current_memory_type != requested_memory_type:
             continue
 
@@ -115,7 +115,7 @@ async def search_memories_hybrid(
                 user_id=memory.user_id,
                 group_id=memory.group_id,
                 content=memory.content,
-                metadata=memory.metadata,
+                metadata=memory.model_metadata,
                 semantic_similarity=round(semantic, 4),
                 keyword_match=round(keyword, 4),
                 recency=round(recency, 4),

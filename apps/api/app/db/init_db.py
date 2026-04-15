@@ -28,6 +28,19 @@ def _expected_table_names() -> set[str]:
     return {table.name for table in Base.metadata.sorted_tables}
 
 
+async def _create_missing_tables(table_names: set[str]) -> None:
+    if not table_names:
+        return
+
+    table_map = {table.name: table for table in Base.metadata.sorted_tables}
+    tables_to_create = [table_map[name] for name in sorted(table_names) if name in table_map]
+    if not tables_to_create:
+        return
+
+    async with engine.begin() as conn:
+        await conn.run_sync(lambda sync_conn: Base.metadata.create_all(sync_conn, tables=tables_to_create, checkfirst=True))
+
+
 async def init_db() -> None:
     alembic_cfg = _alembic_config()
     existing_tables = await _existing_table_names()
@@ -48,8 +61,12 @@ async def init_db() -> None:
         await asyncio.to_thread(command.stamp, alembic_cfg, "head")
         return
 
-    missing_tables = sorted(expected_tables - existing_tables)
-    raise RuntimeError(
-        "Database schema is partially initialized without Alembic history. "
-        f"Missing tables: {', '.join(missing_tables)}"
+    missing_tables = expected_tables - existing_tables
+    missing_tables_sorted = sorted(missing_tables)
+
+    logger.warning(
+        "Partial schema detected without Alembic history; creating missing tables and stamping head. Missing: %s",
+        ", ".join(missing_tables_sorted),
     )
+    await _create_missing_tables(missing_tables)
+    await asyncio.to_thread(command.stamp, alembic_cfg, "head")

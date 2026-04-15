@@ -21,9 +21,8 @@ services:
     environment:
       MCP_COMMAND: python /workspace/apps/mcp_servers/transport_server.py
       MCP_STDIO_FRAMING: ndjson
-      AMADEUS_CLIENT_ID: ${AMADEUS_CLIENT_ID:-}
-      AMADEUS_CLIENT_SECRET: ${AMADEUS_CLIENT_SECRET:-}
-      AMADEUS_BASE_URL: ${AMADEUS_BASE_URL:-https://test.api.amadeus.com}
+      TRAVELPAYOUTS_API_TOKEN: ${TRAVELPAYOUTS_API_TOKEN:-}
+      TRAVELPAYOUTS_BASE_URL: ${TRAVELPAYOUTS_BASE_URL:-https://api.travelpayouts.com/v1}
       PHOTON_BASE_URL: ${PHOTON_BASE_URL:-https://photon.komoot.io}
       OSRM_BASE_URL: ${OSRM_BASE_URL:-https://router.project-osrm.org}
       AVIATIONSTACK_API_KEY: ${AVIATIONSTACK_API_KEY:-}
@@ -93,16 +92,18 @@ services:
       OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY:-}
       OPENWEATHER_BASE_URL: ${OPENWEATHER_BASE_URL:-https://api.openweathermap.org/data/2.5}
       OPENWEATHER_GEO_BASE_URL: ${OPENWEATHER_GEO_BASE_URL:-https://api.openweathermap.org/geo/1.0}
+      OPENWEATHER_ONECALL_BASE_URL: ${OPENWEATHER_ONECALL_BASE_URL:-https://api.openweathermap.org/data/3.0}
       TICKETMASTER_API_KEY: ${TICKETMASTER_API_KEY:-}
       TICKETMASTER_BASE_URL: ${TICKETMASTER_BASE_URL:-https://app.ticketmaster.com/discovery/v2}
+      EVENTBRITE_API_TOKEN: ${EVENTBRITE_API_TOKEN:-}
+      EVENTBRITE_BASE_URL: ${EVENTBRITE_BASE_URL:-https://www.eventbriteapi.com/v3}
       EXCHANGE_API_BASE_URL: ${EXCHANGE_API_BASE_URL:-https://open.er-api.com/v6}
       APIFY_API_TOKEN: ${APIFY_API_TOKEN:-}
       NUMBEO_CITY_COST_ACTOR_ID: ${NUMBEO_CITY_COST_ACTOR_ID:-}
       CLIMATIQ_API_KEY: ${CLIMATIQ_API_KEY:-}
       CLIMATIQ_BASE_URL: ${CLIMATIQ_BASE_URL:-https://api.climatiq.io}
-      AMADEUS_CLIENT_ID: ${AMADEUS_CLIENT_ID:-}
-      AMADEUS_CLIENT_SECRET: ${AMADEUS_CLIENT_SECRET:-}
-      AMADEUS_BASE_URL: ${AMADEUS_BASE_URL:-https://test.api.amadeus.com}
+      TRAVELPAYOUTS_API_TOKEN: ${TRAVELPAYOUTS_API_TOKEN:-}
+      TRAVELPAYOUTS_BASE_URL: ${TRAVELPAYOUTS_BASE_URL:-https://api.travelpayouts.com/v1}
       SAFETY_SECONDARY_SIGNAL_ENABLED: ${SAFETY_SECONDARY_SIGNAL_ENABLED:-true}
     volumes:
       - ./apps/api:/app

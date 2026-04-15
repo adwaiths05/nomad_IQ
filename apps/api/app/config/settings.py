@@ -46,16 +46,18 @@ class _SettingsFields:
     mcp_tool_rag_search_short_term: str = "search_short_term_memory"
     mcp_tool_rag_store: str = "store_memory"
 
-    amadeus_client_id: str | None = None
-    amadeus_client_secret: str | None = None
-    amadeus_base_url: str = "https://test.api.amadeus.com"
+    travelpayouts_api_token: str | None = None
+    travelpayouts_base_url: str = "https://api.travelpayouts.com/v1"
 
     openweather_api_key: str | None = None
     openweather_base_url: str = "https://api.openweathermap.org/data/2.5"
     openweather_geo_base_url: str = "https://api.openweathermap.org/geo/1.0"
+    openweather_onecall_base_url: str = "https://api.openweathermap.org/data/3.0"
 
     ticketmaster_api_key: str | None = None
     ticketmaster_base_url: str = "https://app.ticketmaster.com/discovery/v2"
+    eventbrite_api_token: str | None = None
+    eventbrite_base_url: str = "https://www.eventbriteapi.com/v3"
 
     exchange_api_base_url: str = "https://open.er-api.com/v6"
     apify_api_token: str | None = None

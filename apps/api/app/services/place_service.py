@@ -2,7 +2,7 @@ from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.integrations.cache import cache_get_json, cache_set_json
-from app.integrations.external_apis import MapsClient, fetch_amadeus_safety_score
+from app.integrations.external_apis import MapsClient, fetch_contextual_safety_score
 from app.models.place import Place
 from app.services.confidence import score_from_source
 
@@ -72,10 +72,15 @@ async def search_places(
             continue
 
         existing = await db.scalar(select(Place).where(and_(Place.city == city, Place.name == name)))
-        safety_key = f"amadeus:safety:{round(float(lat), 2)}:{round(float(lng), 2)}"
+        safety_key = f"weather_context_safety:{round(float(lat), 2)}:{round(float(lng), 2)}"
         safety_payload = await cache_get_json(safety_key)
         if not isinstance(safety_payload, dict):
-            safety_payload = await fetch_amadeus_safety_score(float(lat), float(lng))
+            safety_payload = await fetch_contextual_safety_score(
+                float(lat),
+                float(lng),
+                city=city,
+                location_type="tourist",
+            )
             if safety_payload:
                 await cache_set_json(safety_key, safety_payload, ttl_seconds=60 * 24 * 60 * 60)
 

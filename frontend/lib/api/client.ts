@@ -596,6 +596,33 @@ class ApiClientClass {
         body: JSON.stringify(payload),
       }),
 
+    eventsSearchLocal: (payload: {
+      city: string
+      start_date: string
+      end_date: string
+      limit?: number
+    }): Promise<Record<string, unknown>> =>
+      this.request<Record<string, unknown>>('/integrations/events/search-local', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+
+    eventsDiscover: (payload: {
+      city: string
+      start_date: string
+      end_date: string
+      latitude?: number
+      longitude?: number
+      budget_cap?: number
+      time_of_day?: string
+      location_type?: string
+      max_results?: number
+    }): Promise<Record<string, unknown>> =>
+      this.request<Record<string, unknown>>('/integrations/events/discover', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+
     weatherFiveDayForecast: (city: string): Promise<Record<string, unknown>> =>
       this.request<Record<string, unknown>>('/integrations/weather/five-day-forecast', {
         method: 'POST',
@@ -608,10 +635,19 @@ class ApiClientClass {
         body: JSON.stringify({ city }),
       }),
 
-    safetyScore: (latitude: number, longitude: number): Promise<Record<string, unknown>> =>
+    safetyScore: (
+      latitude: number,
+      longitude: number,
+      options?: {
+        city?: string
+        event_count?: number
+        time_of_day?: string
+        location_type?: string
+      }
+    ): Promise<Record<string, unknown>> =>
       this.request<Record<string, unknown>>('/integrations/safety/score', {
         method: 'POST',
-        body: JSON.stringify({ latitude, longitude }),
+        body: JSON.stringify({ latitude, longitude, ...(options || {}) }),
       }),
 
     environmentRouteEmissions: (distanceKm: number, mode = 'passenger_train'): Promise<Record<string, unknown>> =>
