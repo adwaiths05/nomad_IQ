@@ -1,6 +1,8 @@
 import {
   ApiError,
   AuthResponse,
+  AmbientAssistRequest,
+  AmbientAssistResponse,
   BudgetRead,
   ChatMessage,
   CreateItineraryItemRequest,
@@ -13,6 +15,7 @@ import {
   PlaceRead,
   ProfileRead,
   ScoreRead,
+  QueryExpansionResponse,
   TravelGuide,
   Trip,
   UpdateItineraryItemRequest,
@@ -523,36 +526,37 @@ class ApiClientClass {
   }
 
   integrations = {
-    exchangeRates: (baseCurrency: string): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/finance/exchange-rates', {
-        method: 'POST',
-        body: JSON.stringify({ base_currency: baseCurrency }),
-      }),
-
-    transportSearchFlights: (payload: {
-      city: string
-      start_date?: string
-      end_date?: string
-      origin_city?: string
+    transportSearchTrains: (payload: {
+      origin_city: string
+      destination_city: string
+      journey_date?: string | null
       limit?: number
-      currency?: string
     }): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/transport/search-flights', {
+      this.request<Record<string, unknown>>('/integrations/transport/search-trains', {
         method: 'POST',
         body: JSON.stringify(payload),
       }),
 
-    transportSearchNomadDeals: (payload: {
-      origin_city?: string
-      start_date?: string
-      end_date?: string
-      nights_in_dst_from?: number
-      nights_in_dst_to?: number
-      max_fly_duration?: number
+    transportSearchBuses: (payload: {
+      origin_city: string
+      destination_city: string
+      journey_date?: string | null
       limit?: number
-      currency?: string
     }): Promise<Record<string, unknown>> =>
-      this.request<Record<string, unknown>>('/integrations/transport/search-nomad-deals', {
+      this.request<Record<string, unknown>>('/integrations/transport/search-buses', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+
+    transportSearchMetro: (payload: {
+      origin_lat: number
+      origin_lng: number
+      destination_lat: number
+      destination_lng: number
+      city?: string | null
+      limit?: number
+    }): Promise<Record<string, unknown>> =>
+      this.request<Record<string, unknown>>('/integrations/transport/search-metro', {
         method: 'POST',
         body: JSON.stringify(payload),
       }),
@@ -579,6 +583,7 @@ class ApiClientClass {
       origin_lng: number
       destination_lat: number
       destination_lng: number
+      mode?: string
     }): Promise<Record<string, unknown>> =>
       this.request<Record<string, unknown>>('/integrations/maps/transit-duration', {
         method: 'POST',
@@ -699,6 +704,20 @@ class ApiClientClass {
         sender: 'ai',
         message: 'Chat endpoint is not exposed by the backend yet.',
         created_at: new Date().toISOString(),
+      }),
+  }
+
+  ambientAi = {
+    expand: (payload: AmbientAssistRequest): Promise<QueryExpansionResponse> =>
+      this.request<QueryExpansionResponse>('/ai/expand', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+
+    assist: (payload: AmbientAssistRequest): Promise<AmbientAssistResponse> =>
+      this.request<AmbientAssistResponse>('/ai/assist', {
+        method: 'POST',
+        body: JSON.stringify(payload),
       }),
   }
 

@@ -7,7 +7,23 @@ import { Switch } from '@/components/ui/switch'
 import { apiClient } from '../../../lib/api/client'
 import type { PlaceRead } from '../../../lib/api/types'
 
+const INDIA_CITIES = [
+  'Delhi',
+  'Mumbai',
+  'Bengaluru',
+  'Chennai',
+  'Kolkata',
+  'Hyderabad',
+  'Pune',
+  'Ahmedabad',
+  'Jaipur',
+  'Kochi',
+  'Goa',
+  'Varanasi',
+]
+
 export default function PlacesPage() {
+  const [city, setCity] = useState('Bengaluru')
   const [visual, setVisual] = useState([7])
   const [crowdMax, setCrowdMax] = useState([4])
   const [safety, setSafety] = useState([7])
@@ -20,7 +36,7 @@ export default function PlacesPage() {
     const timer = setTimeout(async () => {
       try {
         const data = await apiClient.places.search({
-          city: 'Tokyo',
+          city,
           category: antiTourist ? 'hidden-gem' : undefined,
           productive_only: productive,
         })
@@ -31,7 +47,7 @@ export default function PlacesPage() {
     }, 300)
 
     return () => clearTimeout(timer)
-  }, [productive, antiTourist, visual, crowdMax, safety, costMax])
+  }, [city, productive, antiTourist, visual, crowdMax, safety, costMax])
 
   const filteredPlaces = useMemo(
     () =>
@@ -56,14 +72,34 @@ export default function PlacesPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4">
         <Card>
-          <CardHeader><CardTitle className="text-base">Score filter sliders (#7)</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-base">India city picker</CardTitle>
+          </CardHeader>
           <CardContent className="space-y-4 text-sm">
+            <div>
+              <p>City</p>
+              <select
+                className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+              >
+                {INDIA_CITIES.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <p className="text-xs text-slate-500">Showing India-only destinations and place suggestions.</p>
+            <div className="pt-2 border-t border-slate-200">
+              <p className="font-medium mb-3">Score filters</p>
+            </div>
             <div><p>Visual score: {visual[0]}</p><Slider value={visual} onValueChange={setVisual} min={0} max={10} step={1} /></div>
             <div><p>Crowd score max: {crowdMax[0]}</p><Slider value={crowdMax} onValueChange={setCrowdMax} min={0} max={10} step={1} /></div>
             <div><p>Safety score: {safety[0]}</p><Slider value={safety} onValueChange={setSafety} min={0} max={10} step={1} /></div>
-            <div><p>Cost/day max: €{costMax[0]}</p><Slider value={costMax} onValueChange={setCostMax} min={0} max={200} step={5} /></div>
+            <div><p>Cost/day max: ₹{costMax[0]}</p><Slider value={costMax} onValueChange={setCostMax} min={0} max={200} step={5} /></div>
             <div className="flex items-center justify-between"><span>Productive spots mode</span><Switch checked={productive} onCheckedChange={setProductive} /></div>
-            <div className="flex items-center justify-between"><span>Anti-tourist filter (#19)</span><Switch checked={antiTourist} onCheckedChange={setAntiTourist} /></div>
+            <div className="flex items-center justify-between"><span>Anti-tourist filter</span><Switch checked={antiTourist} onCheckedChange={setAntiTourist} /></div>
           </CardContent>
         </Card>
 

@@ -95,6 +95,10 @@ export default function ItineraryDetailPage() {
     [enriched]
   )
 
+  const openAmbientAi = (prompt: string) => {
+    window.dispatchEvent(new CustomEvent('nomad-ai-open', { detail: { prompt } }))
+  }
+
   return (
     <div className="p-6 md:p-8 space-y-4">
       <h1 className="text-3xl font-bold">Itinerary • {params.tripId}</h1>
@@ -108,12 +112,12 @@ export default function ItineraryDetailPage() {
             </div>
           </div>
           <Button size="sm" variant="outline">Cheaper alternatives</Button>
-          <div className="flex items-center gap-2 text-sm"><span>Remote mode (#16)</span><Switch checked={remoteMode} onCheckedChange={setRemoteMode} /></div>
+          <div className="flex items-center gap-2 text-sm"><span>Remote mode</span><Switch checked={remoteMode} onCheckedChange={setRemoteMode} /></div>
         </CardContent>
       </Card>
 
       <div className="sticky top-0 z-10 rounded-lg border bg-white p-3">
-        <p className="text-sm font-medium">Timeline scrubber (#4)</p>
+        <p className="text-sm font-medium">Timeline scrubber</p>
         <div className="mt-2 flex items-center gap-3">
           {timeline.map((item) => (
             <button key={item.item_id} className="h-8 w-8 rounded-full bg-teal-100 text-xs">
@@ -143,7 +147,7 @@ export default function ItineraryDetailPage() {
                     </span>
                     <div className="flex items-center gap-2">
                       <ConfidenceRing value={item.confidence} />
-                      <Badge>{item.confidence}% confidence (#10)</Badge>
+                      <Badge>{item.confidence}% confidence</Badge>
                     </div>
                   </CardTitle>
                 </CardHeader>
@@ -151,16 +155,26 @@ export default function ItineraryDetailPage() {
                   <div className="flex gap-2 flex-wrap">
                     <Button
                       size="sm"
+                      onClick={() =>
+                        openAmbientAi(
+                          `I am on itinerary day ${day}, item ${item.activity}. Suggest the best next move with live transit and budget awareness.`
+                        )
+                      }
+                    >
+                      Ask AI here
+                    </Button>
+                    <Button
+                      size="sm"
                       variant="secondary"
                       onClick={() => setOpenWhy(openWhy === (item.item_id || item.id) ? null : (item.item_id || item.id))}
                     >
-                      Why this? (#3)
+                      Why this?
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => setShowEcoDrawer((v) => !v)}>
-                      Eco route drawer (#9)
+                      Eco route drawer
                     </Button>
-                    <Badge variant="outline">Micro feedback marks (#18)</Badge>
-                    <Badge variant="outline">Living map toggle (#20)</Badge>
+                    <Badge variant="outline">Micro feedback marks</Badge>
+                    <Badge variant="outline">Living map toggle</Badge>
                   </div>
                   {openWhy === (item.item_id || item.id) && (
                     <div className="rounded-lg border bg-slate-50 p-3 text-sm">
@@ -171,7 +185,7 @@ export default function ItineraryDetailPage() {
                   {showEcoDrawer && (
                     <div className="rounded-lg border p-3 text-sm grid grid-cols-1 md:grid-cols-3 gap-2">
                       <div className="rounded border p-2">Fastest: 22m • 5.6kg CO2</div>
-                      <div className="rounded border p-2">Cheapest: €2.8 • 7.1kg CO2</div>
+                      <div className="rounded border p-2">Cheapest: ₹2.8 • 7.1kg CO2</div>
                       <div className="rounded border border-teal-400 p-2">Eco: 8.1kg CO2 = 0.3 trees saved</div>
                     </div>
                   )}

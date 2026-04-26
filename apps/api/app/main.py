@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from typing import Any
 
 import httpx
@@ -6,8 +7,9 @@ from fastapi import FastAPI
 
 from app.config.settings import get_settings
 from app.db.init_db import init_db
-from app.integrations.background_jobs import exchange_rate_refresh_loop, numbeo_refresh_loop
+from app.integrations.background_jobs import numbeo_refresh_loop
 from app.routes import (
+    ambient_ai,
     auth,
     budget,
     environment,
@@ -29,8 +31,10 @@ from app.routes import (
 settings = get_settings()
 app = FastAPI(title=settings.app_name, version=settings.app_version, debug=settings.app_debug)
 _background_tasks: list[asyncio.Task] = []
+logger = logging.getLogger(__name__)
 
 app.include_router(auth.router)
+app.include_router(ambient_ai.router)
 app.include_router(users.router)
 app.include_router(groups.router)
 app.include_router(profiles.router)
@@ -140,8 +144,10 @@ async def startup_health_check() -> dict[str, Any]:
 
 @app.on_event("startup")
 async def startup_event() -> None:
-    await init_db()
-    _background_tasks.append(asyncio.create_task(exchange_rate_refresh_loop()))
+    if settings.db_init_on_startup:
+        await init_db()
+    else:
+        logger.info("Skipping database initialization on startup (DB_INIT_ON_STARTUP=false)")
     _background_tasks.append(asyncio.create_task(numbeo_refresh_loop()))
 
 

@@ -133,7 +133,7 @@ export default function EditTripPage() {
                   <Input
                     id="destination"
                     name="destination"
-                    placeholder="e.g., Tokyo, Japan"
+                    placeholder="e.g., Delhi, India"
                     value={formData.destination}
                     onChange={handleChange}
                     disabled={isSaving}

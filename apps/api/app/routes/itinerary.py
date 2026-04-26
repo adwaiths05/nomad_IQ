@@ -6,13 +6,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies.db import get_db
 from app.engines.itinerary_optimizer import optimize_itinerary
-from app.integrations.cache import cache_get_json, cache_set_json
-from app.integrations.external_apis import MapsClient, MapsRoutesClient
+from app.integrations.cache import cache_set_json
+from app.integrations.external_apis import MapsClient, MapsRoutesClient, TransportClient
 from app.models.place import Place
 from app.models.profile import TravelerProfile
 from app.models.trip import Trip
 from app.schemas.itinerary import ItineraryItemRead, ItineraryItemUpdate, ItineraryOptimizeRequest
 from app.services.itinerary_service import get_trip_itinerary, update_item
+from app.utils.geo import haversine_km
 
 router = APIRouter(tags=["itinerary"])
 
@@ -34,6 +35,7 @@ async def update_itinerary_item(item_id: UUID, payload: ItineraryItemUpdate, db:
 
 @router.post("/itinerary/optimize")
 async def optimize_itinerary_endpoint(payload: ItineraryOptimizeRequest, db: AsyncSession = Depends(get_db)) -> dict:
+    trip = await db.get(Trip, str(payload.trip_id))
     data = await get_trip_itinerary(db, str(payload.trip_id))
     items = [ItineraryItemRead.model_validate(row).model_dump() for row in data["items"]]
 
@@ -87,6 +89,8 @@ async def optimize_itinerary_endpoint(payload: ItineraryOptimizeRequest, db: Asy
         place_rows = await db.scalars(select(Place).where(Place.id.in_(place_ids)))
         place_map = {str(row.id): row for row in list(place_rows)}
 
+    transport_client = TransportClient()
+
     for idx in range(1, len(optimized_items)):
         prev = optimized_items[idx - 1]
         current = optimized_items[idx]
@@ -95,26 +99,96 @@ async def optimize_itinerary_endpoint(payload: ItineraryOptimizeRequest, db: Asy
         if prev_place is None or current_place is None:
             continue
 
-        route_key = (
-            f"routes:{prev_place.latitude:.4f}:{prev_place.longitude:.4f}:"
-            f"{current_place.latitude:.4f}:{current_place.longitude:.4f}:transit"
+        distance_km = haversine_km(
+            float(prev_place.latitude),
+            float(prev_place.longitude),
+            float(current_place.latitude),
+            float(current_place.longitude),
         )
-        cached = await cache_get_json(route_key)
-        minutes = None
-        if isinstance(cached, dict) and isinstance(cached.get("minutes"), int):
-            minutes = int(cached["minutes"])
-        else:
+        same_city = prev_place.city.strip().lower() == current_place.city.strip().lower()
+
+        transition_mode = "walking"
+        transition_source = "openrouteservice"
+        transition_summary = f"{prev_place.city} to {current_place.city} by walking"
+        minutes: int | None = None
+
+        if not same_city and distance_km >= 120:
+            transition_mode = "passenger_train"
+            transition_source = "railapi"
+            transition_summary = f"{prev_place.city} to {current_place.city} by train"
+            train_options = await transport_client.search_trains(
+                origin_city=prev_place.city,
+                destination_city=current_place.city,
+                journey_date=trip.start_date if trip is not None else None,
+                limit=3,
+            )
+            best_train = train_options[0] if train_options else None
+            if isinstance(best_train, dict) and isinstance(best_train.get("duration_minutes"), (int, float)):
+                minutes = int(best_train["duration_minutes"])
+            else:
+                minutes = max(120, int(round((distance_km / 70.0) * 60.0)))
+            current["transition_options"] = train_options
+        elif distance_km <= 1.5:
+            transition_mode = "walking"
+            transition_summary = f"{prev_place.city} to {current_place.city} on foot"
             minutes = await MapsRoutesClient().transit_duration_minutes(
                 origin_lat=float(prev_place.latitude),
                 origin_lng=float(prev_place.longitude),
                 destination_lat=float(current_place.latitude),
                 destination_lng=float(current_place.longitude),
+                mode="walking",
             )
-            if minutes is not None:
-                await cache_set_json(route_key, {"minutes": minutes}, ttl_seconds=12 * 60 * 60)
+        elif same_city and distance_km <= 8:
+            transition_mode = "metro"
+            transition_summary = f"{prev_place.city} by metro"
+            minutes = await MapsRoutesClient().transit_duration_minutes(
+                origin_lat=float(prev_place.latitude),
+                origin_lng=float(prev_place.longitude),
+                destination_lat=float(current_place.latitude),
+                destination_lng=float(current_place.longitude),
+                mode="metro",
+            )
+        else:
+            transition_mode = "bus"
+            transition_summary = f"{prev_place.city} to {current_place.city} by bus"
+            minutes = await MapsRoutesClient().transit_duration_minutes(
+                origin_lat=float(prev_place.latitude),
+                origin_lng=float(prev_place.longitude),
+                destination_lat=float(current_place.latitude),
+                destination_lng=float(current_place.longitude),
+                mode="bus",
+            )
 
-        if minutes is not None:
-            current["travel_time_minutes"] = minutes
+        if minutes is None:
+            if transition_mode == "passenger_train":
+                minutes = max(120, int(round((distance_km / 70.0) * 60.0)))
+            elif transition_mode == "metro":
+                minutes = max(5, int(round(distance_km * 3.0)))
+            elif transition_mode == "bus":
+                minutes = max(10, int(round((distance_km / 28.0) * 60.0)))
+            else:
+                minutes = max(5, int(round((distance_km / 5.0) * 60.0)))
+
+        route_key = (
+            f"routes:{prev_place.latitude:.4f}:{prev_place.longitude:.4f}:"
+            f"{current_place.latitude:.4f}:{current_place.longitude:.4f}:{transition_mode}"
+        )
+        await cache_set_json(
+            route_key,
+            {
+                "minutes": minutes,
+                "mode": transition_mode,
+                "distance_km": round(distance_km, 2),
+                "source": transition_source,
+            },
+            ttl_seconds=12 * 60 * 60,
+        )
+
+        current["travel_time_minutes"] = minutes
+        current["travel_mode"] = transition_mode
+        current["route_source"] = transition_source
+        current["transition_summary"] = transition_summary
+        current["transition_distance_km"] = round(distance_km, 2)
 
     return {
         "trip_id": str(payload.trip_id),

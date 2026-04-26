@@ -126,6 +126,78 @@ export interface ChatMessage {
   created_at: string;
 }
 
+export interface AmbientAssistRequest {
+  query: string;
+  trip_id?: string;
+  user_id?: string;
+  screen?: string;
+  location_context?: string;
+}
+
+export interface QueryExpansionResponse {
+  original_query: string;
+  expanded_queries: string[];
+  context_used: Record<string, unknown>;
+}
+
+export interface AmbientContextPacket {
+  screen: string;
+  generated_at: string;
+  current_city?: string | null;
+  current_itinerary_summary?: string | null;
+  saved_preference_summary?: string | null;
+  remaining_budget?: number | null;
+  budget_currency: string;
+  current_location_context?: string | null;
+  live_transit_conditions?: string | null;
+  active_disruptions: string[];
+}
+
+export interface AmbientProactiveCard {
+  title: string;
+  detail: string;
+  action_label: string;
+}
+
+export interface ToolTraceRead {
+  tool_name: string;
+  summary: string;
+  inputs: Record<string, unknown>;
+  outputs: Record<string, unknown>;
+}
+
+export interface MemorySearchResult {
+  id: string;
+  user_id?: string | null;
+  group_id?: string | null;
+  content: string;
+  metadata: Record<string, unknown>;
+  semantic_similarity: number;
+  keyword_match: number;
+  recency: number;
+  score: number;
+  matched_queries: string[];
+  memory_type: string;
+}
+
+export interface AmbientProvenanceRead {
+  memory_items: MemorySearchResult[];
+  tool_traces: ToolTraceRead[];
+}
+
+export interface AmbientAssistResponse {
+  answer: string;
+  expanded_queries: string[];
+  context_packet: AmbientContextPacket;
+  confidence: number;
+  uncertainty_note?: string | null;
+  sources: string[];
+  proactive_cards: AmbientProactiveCard[];
+  memory_updated: boolean;
+  provenance: AmbientProvenanceRead;
+  debug?: Record<string, unknown>;
+}
+
 export interface SendMessageRequest {
   message: string;
 }

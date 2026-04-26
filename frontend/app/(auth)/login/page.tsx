@@ -9,13 +9,13 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Spinner } from '@/components/ui/spinner'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, Eye, EyeOff } from 'lucide-react'
 
 const authCities = [
-  { city: 'Tokyo', image: 'https://images.pexels.com/photos/36290072/pexels-photo-36290072.jpeg' },
-  { city: 'Lisbon', image: 'https://images.pexels.com/photos/5069524/pexels-photo-5069524.jpeg' },
-  { city: 'Bali', image: 'https://images.pexels.com/photos/3913678/pexels-photo-3913678.jpeg' },
-  { city: 'Seoul', image: 'https://images.pexels.com/photos/2067057/pexels-photo-2067057.jpeg' },
+  { city: 'Delhi', image: 'https://images.pexels.com/photos/7368048/pexels-photo-7368048.jpeg' },
+  { city: 'Mumbai', image: 'https://images.pexels.com/photos/2404048/pexels-photo-2404048.jpeg' },
+  { city: 'Bengaluru', image: 'https://images.pexels.com/photos/3888151/pexels-photo-3888151.jpeg' },
+  { city: 'Jaipur', image: 'https://images.pexels.com/photos/1450353/pexels-photo-1450353.jpeg' },
 ]
 
 export default function LoginPage() {
@@ -26,6 +26,7 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [cityIndex, setCityIndex] = useState(0)
+  const [showPassword, setShowPassword] = useState(false)
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -99,12 +100,22 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium">
-                Password
-              </label>
+              <div className="flex items-center justify-between">
+                <label htmlFor="password" className="text-sm font-medium">
+                  Password
+                </label>
+                <button
+                  type="button"
+                  className="text-xs text-slate-600 hover:text-slate-900 inline-flex items-center gap-1"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                >
+                  {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
               <Input
                 id="password"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

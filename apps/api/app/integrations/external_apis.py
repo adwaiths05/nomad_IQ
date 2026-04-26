@@ -15,31 +15,6 @@ def _date_to_str(value: date | str | None) -> str | None:
     return str(value)
 
 
-class ExchangeRateClient:
-    cache_ttl_seconds = 12 * 60 * 60
-
-    def __init__(self) -> None:
-        self.settings = get_settings()
-
-    async def get_rates(self, base_currency: str) -> dict[str, Any] | None:
-        base = (base_currency or "USD").upper()
-        async with httpx.AsyncClient(timeout=20) as client:
-            response = await client.get(f"{self.settings.exchange_api_base_url.rstrip('/')}/latest/{base}")
-            if response.status_code >= 400:
-                return {"base_code": base, "conversion_rates": {base: 1.0}, "source": "fallback"}
-            payload = response.json()
-
-        rates = payload.get("rates") or payload.get("conversion_rates") or {}
-        if not isinstance(rates, dict):
-            rates = {base: 1.0}
-
-        return {
-            "base_code": payload.get("base_code") or payload.get("base") or base,
-            "conversion_rates": rates,
-            "source": "open_er_api",
-        }
-
-
 class MapsClient:
     details_cache_ttl_seconds = 30 * 24 * 60 * 60
 
@@ -88,6 +63,7 @@ class MapsRoutesClient:
         origin_lng: float,
         destination_lat: float,
         destination_lng: float,
+        mode: str = "walking",
     ) -> int | None:
         result = await self.mcp.call_tool(
             server_url=self.settings.mcp_travel_url,
@@ -97,6 +73,7 @@ class MapsRoutesClient:
                 "origin_lng": origin_lng,
                 "destination_lat": destination_lat,
                 "destination_lng": destination_lng,
+                "mode": mode,
             },
             timeout_seconds=20,
         )
@@ -237,64 +214,78 @@ class EventbriteClient:
 
 
 class TransportClient:
+    """India-centric land-based transport: trains, buses, metro"""
     cache_ttl_seconds = 2 * 60 * 60
-    nomad_cache_ttl_seconds = 6 * 60 * 60
 
     def __init__(self) -> None:
         self.settings = get_settings()
         self.mcp = FastMCPClient()
 
-    async def search_flights(
+    async def search_trains(
         self,
-        city: str,
-        start_date: date | str | None = None,
-        end_date: date | str | None = None,
-        origin_city: str | None = None,
-        limit: int = 10,
-        currency: str = "USD",
+        origin_city: str,
+        destination_city: str,
+        journey_date: date | str | None = None,
+        limit: int = 5,
     ) -> list[dict[str, Any]]:
         result = await self.mcp.call_tool(
             server_url=self.settings.mcp_travel_url,
-            tool_name=self.settings.mcp_tool_travel_search_flights,
+            tool_name=self.settings.mcp_tool_travel_search_trains,
             arguments={
-                "city": city,
-                "start_date": _date_to_str(start_date),
-                "end_date": _date_to_str(end_date),
                 "origin_city": origin_city,
+                "destination_city": destination_city,
+                "journey_date": _date_to_str(journey_date),
                 "limit": limit,
-                "currency": currency,
             },
             timeout_seconds=40,
         )
         return result if isinstance(result, list) else []
 
-    async def search_nomad_deals(
+    async def search_buses(
         self,
-        origin_city: str | None = None,
-        start_date: date | str | None = None,
-        end_date: date | str | None = None,
-        nights_in_dst_from: int | None = None,
-        nights_in_dst_to: int | None = None,
-        max_fly_duration: int | None = None,
-        limit: int = 10,
-        currency: str = "USD",
-    ) -> dict[str, Any] | list[Any] | None:
+        origin_city: str,
+        destination_city: str,
+        journey_date: date | str | None = None,
+        limit: int = 5,
+    ) -> list[dict[str, Any]]:
         result = await self.mcp.call_tool(
             server_url=self.settings.mcp_travel_url,
-            tool_name=self.settings.mcp_tool_travel_search_nomad_deals,
+            tool_name=self.settings.mcp_tool_travel_search_buses,
             arguments={
                 "origin_city": origin_city,
-                "start_date": _date_to_str(start_date),
-                "end_date": _date_to_str(end_date),
-                "nights_in_dst_from": nights_in_dst_from,
-                "nights_in_dst_to": nights_in_dst_to,
-                "max_fly_duration": max_fly_duration,
+                "destination_city": destination_city,
+                "journey_date": _date_to_str(journey_date),
                 "limit": limit,
-                "currency": currency,
             },
-            timeout_seconds=40,
+            timeout_seconds=30,
         )
-        return result if isinstance(result, (dict, list)) else None
+        return result if isinstance(result, list) else []
+
+    async def search_metro(
+        self,
+        origin_lat: float,
+        origin_lng: float,
+        destination_lat: float,
+        destination_lng: float,
+        city: str | None = None,
+        limit: int = 5,
+    ) -> list[dict[str, Any]]:
+        result = await self.mcp.call_tool(
+            server_url=self.settings.mcp_travel_url,
+            tool_name=self.settings.mcp_tool_travel_search_metro,
+            arguments={
+                "origin_lat": origin_lat,
+                "origin_lng": origin_lng,
+                "destination_lat": destination_lat,
+                "destination_lng": destination_lng,
+                "city": city,
+                "limit": limit,
+            },
+            timeout_seconds=30,
+        )
+        return result if isinstance(result, list) else []
+
+    # Flight and nomad deals removed - India focus on land transport
 
 
 class OpenWeatherClient:

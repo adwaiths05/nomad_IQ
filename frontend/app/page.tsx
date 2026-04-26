@@ -5,31 +5,26 @@ import Link from 'next/link'
 import { apiClient } from '../lib/api/client'
 
 const slides = [
-  { city: 'Tokyo', image: 'https://images.pexels.com/photos/36290072/pexels-photo-36290072.jpeg', accentColor: '#297bee', headlineColor: '#F2F0EA', subColor: '#9090b0' },
-  { city: 'Lisbon', image: 'https://images.pexels.com/photos/5069524/pexels-photo-5069524.jpeg', accentColor: '#FFB347', headlineColor: '#FDF6E3', subColor: '#b08050' },
-  { city: 'Bali', image: 'https://images.pexels.com/photos/3913678/pexels-photo-3913678.jpeg', accentColor: '#7eda8a', headlineColor: '#F0F5F0', subColor: '#608060' },
-  { city: 'Amalfi Coast', image: 'https://images.pexels.com/photos/358223/pexels-photo-358223.jpeg', accentColor: '#36e7cc', headlineColor: '#EDF4FB', subColor: '#5080a0' },
-  { city: 'Kyoto', image: 'https://images.pexels.com/photos/6793716/pexels-photo-6793716.jpeg', accentColor: '#c8e890', headlineColor: '#F5F5EE', subColor: '#708058' },
-  { city: 'Santorini', image: 'https://images.pexels.com/photos/221532/pexels-photo-221532.jpeg', accentColor: '#88aaff', headlineColor: '#FFFFFF', subColor: '#5068b0' },
-  { city: 'New York', image: 'https://images.pexels.com/photos/747101/pexels-photo-747101.jpeg', accentColor: '#1847ef', headlineColor: '#F8F8F8', subColor: '#1e3a5f' },
-  { city: 'Seoul', image: 'https://images.pexels.com/photos/2067057/pexels-photo-2067057.jpeg', accentColor: '#e080ff', headlineColor: '#F5EEFF', subColor: '#8058a0' },
-  { city: 'The Dolomites', image: 'https://plus.unsplash.com/premium_photo-1724424666831-98f263e2ea4a?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', accentColor: '#90d0f0', headlineColor: '#EEF2F8', subColor: '#6080a0' },
-  { city: 'Banff National Park', image: 'https://images.unsplash.com/photo-1503614472-8c93d56e92ce?q=80&w=1111&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', accentColor: '#50e0c8', headlineColor: '#E8F5F2', subColor: '#408070' },
-]
+  { city: 'Lahaul Spiti', image: 'https://images.pexels.com/photos/36848939/pexels-photo-36848939.jpeg', accentColor: '#d97706', headlineColor: '#FFF8E7', subColor: '#b45309' },
+  { city: 'Lakshadweep', image: 'https://images.pexels.com/photos/35236004/pexels-photo-35236004.jpeg', accentColor: '#2563eb', headlineColor: '#F5F9FF', subColor: '#1d4ed8' },
+  { city: 'Tawang', image: 'https://images.pexels.com/photos/19285850/pexels-photo-19285850.jpeg', accentColor: '#059669', headlineColor: '#F1FFF8', subColor: '#047857' },
+  { city: 'Coorg', image: 'https://images.pexels.com/photos/13691355/pexels-photo-13691355.jpeg', accentColor: '#0f766e', headlineColor: '#EEFFFD', subColor: '#115e59' },
+  { city: 'Varkala', image: 'https://images.pexels.com/photos/10983956/pexels-photo-10983956.jpeg', accentColor: '#7c3aed', headlineColor: '#FAF5FF', subColor: '#6d28d9' },
+  ]
 
 const typewriterPhrases = [
-  'Surprise me in Tokyo for 5 days under €1,500',
-  'Plan a weekend in Lisbon with great food',
-  'Austin for SXSW — 4 days, budget €800',
-  'Somewhere warm, 7 days, eco-friendly',
+  'Plan a 5-day train-first trip across India',
+  'Build a weekend in Jaipur with metro and walking',
+  'Optimize Mumbai to Pune by land, not flights',
+  'Find the best train, bus, and walk combo for Kochi',
 ]
 
 
 const integrationCards = [
   {
     provider: 'mcp-travel',
-    description: 'Flights + city spots + nearby spots + transit duration in one travel boundary',
-    endpoint: 'POST /integrations/transport/search-flights',
+    description: 'Train search + city spots + nearby spots + land routing in one travel boundary',
+    endpoint: 'POST /integrations/transport/search-trains',
   },
   {
     provider: 'backend-weather',
@@ -43,8 +38,8 @@ const integrationCards = [
   },
   {
     provider: 'backend-finance',
-    description: 'Exchange rates and city cost baselines with deterministic fallback',
-    endpoint: 'POST /integrations/finance/exchange-rates',
+    description: 'City cost baselines for India with deterministic fallback',
+    endpoint: 'POST /integrations/finance/cost-baseline',
   },
   {
     provider: 'backend-safety-secondary',
@@ -196,7 +191,7 @@ export default function HomePage() {
         type="text"
         value={discoveryCity}
         onChange={(event) => setDiscoveryCity(event.target.value)}
-        placeholder="Tokyo"
+        placeholder="Delhi"
       />
 
       <div className="discovery-control-row">
@@ -222,7 +217,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      <label className="discovery-label" htmlFor="discovery-budget">Budget cap: €{budgetValue}</label>
+      <label className="discovery-label" htmlFor="discovery-budget">Budget cap: ₹{budgetValue}</label>
       <input
         id="discovery-budget"
         className="discovery-range"
@@ -499,7 +494,7 @@ export default function HomePage() {
               <input
                 className={`hero-input ${inputFocused ? 'focused' : ''}`}
                 type="text"
-                placeholder={typewriterText || 'Try: "Surprise me in Tokyo for 5 days under €1,500"'}
+                placeholder={typewriterText || 'Try: "Surprise me in Delhi for 5 days under ₹1,50,000"'}
                 aria-label="Trip prompt"
                 onFocus={() => setInputFocused(true)}
                 onBlur={() => setInputFocused(false)}
@@ -521,13 +516,13 @@ export default function HomePage() {
 
           <div className={`pill-row suggestion-pills-row ${inputFocused ? 'visible' : ''}`} role="list" aria-label="Prompt suggestions">
             <button className="suggestion-pill" type="button" style={{ '--delay': '0ms' } as React.CSSProperties}>
-              🗽 Tokyo · 5 days
+              🗽 Delhi · 5 days
             </button>
             <button className="suggestion-pill" type="button" style={{ '--delay': '80ms' } as React.CSSProperties}>
-              🏖 Amalfi · weekend
+              🏖 Goa · weekend
             </button>
             <button className="suggestion-pill" type="button" style={{ '--delay': '160ms' } as React.CSSProperties}>
-              🎵 Austin SXSW
+              🎵 Bengaluru tech week
             </button>
           </div>
 
@@ -578,7 +573,7 @@ export default function HomePage() {
               <article className="demo-card">
                 <div className="demo-thumb skeleton-block" />
                 <div className="demo-card-content">
-                  <h3>Meiji Shrine Gate</h3>
+                  <h3>Fort Kochi Waterfront</h3>
                   <p>08:30 - 09:45</p>
                   <div className="confidence-row">
                     <div className="confidence-ring" aria-hidden="true">
@@ -599,7 +594,7 @@ export default function HomePage() {
               <article className="demo-card">
                 <div className="demo-thumb skeleton-block" />
                 <div className="demo-card-content">
-                  <h3>Shibuya Crossing Viewpoint</h3>
+                  <h3>Mattancherry Spice Walk</h3>
                   <p>10:15 - 11:00</p>
                 </div>
               </article>
@@ -607,7 +602,7 @@ export default function HomePage() {
               <article className="demo-card">
                 <div className="demo-thumb skeleton-block" />
                 <div className="demo-card-content">
-                  <h3>Nezu Museum Garden</h3>
+                  <h3>Alleppey Backwater Trail</h3>
                   <p>11:30 - 12:40</p>
                 </div>
               </article>
@@ -623,12 +618,12 @@ export default function HomePage() {
           <div className="pillars-grid">
             <article className="pillar-card" onMouseEnter={() => setActivePillar(0)} onMouseLeave={() => setActivePillar(null)}>
               <div className={`pillar-visual planning-visual ${activePillar === 0 ? 'active' : ''}`}>
-                <p className="typing-line">5 days in Kyoto</p>
+                <p className="typing-line">5 days in Jaipur</p>
                 <div className="planning-skeleton" />
                 <div className="plan-mini-cards">
-                  <span>Fushimi Inari</span>
-                  <span>Gion Walk</span>
-                  <span>Arashiyama</span>
+                  <span>Hawa Mahal</span>
+                  <span>Bapu Bazaar Walk</span>
+                  <span>Amber Fort</span>
                 </div>
               </div>
 
@@ -645,7 +640,7 @@ export default function HomePage() {
                 <div className="budget-meter">
                   <div className="budget-meter-fill" />
                 </div>
-                <p className="budget-ticker">€1,204 / €1,500</p>
+                <p className="budget-ticker">₹1,20,400 / ₹1,50,000</p>
                 <div className="alt-card">Cheaper alternatives available nearby</div>
               </div>
 
@@ -679,66 +674,70 @@ export default function HomePage() {
       </section>
 
       <section className="discovery-section">
-        <div className="section-shell">
-          <p className="section-label">Discovery Layer</p>
-          <h2 className="section-title">Local Event Intelligence in action.</h2>
-          <p className="section-copy">
-            This section calls <strong>/integrations/events/discover</strong> and fuses Ticketmaster + Eventbrite + places + cost + weather/context into ranked suggestions.
-          </p>
-
-          <div className="discovery-mobile-controls">
-            <details>
-              <summary>Adjust city, dates, budget, and context</summary>
-              <div className="discovery-controls-inner">{renderDiscoveryControls()}</div>
-            </details>
+        <div className="section-shell discovery-shell">
+          <div className="discovery-intro">
+            <p className="section-label">Discovery Layer</p>
+            <h2 className="section-title">Local Event Intelligence in action.</h2>
+            <p className="section-copy">
+              This section calls <strong>/integrations/events/discover</strong> and fuses Ticketmaster + Eventbrite + places + cost + weather/context into ranked suggestions.
+            </p>
           </div>
 
-          <div className="discovery-layout">
-            <aside className="discovery-controls desktop-only">
-              <p className="section-label">Inputs</p>
-              <h3>Tune the decision engine</h3>
-              <p>Set constraints, then run discovery to rank local event + place combinations.</p>
-              <div className="discovery-controls-inner">{renderDiscoveryControls()}</div>
-            </aside>
+          <div className="discovery-workbench">
+            <div className="discovery-mobile-controls">
+              <details>
+                <summary>Adjust city, dates, budget, and context</summary>
+                <div className="discovery-controls-inner">{renderDiscoveryControls()}</div>
+              </details>
+            </div>
 
-            <div className="discovery-results">
-              {discoveryLoading && <p className="section-copy">Loading discovery recommendations...</p>}
-              {!discoveryLoading && discoveryError && <p className="section-copy">Discovery unavailable: {discoveryError}</p>}
+            <div className="discovery-layout">
+              <aside className="discovery-controls desktop-only">
+                <p className="section-label">Inputs</p>
+                <h3>Tune the decision engine</h3>
+                <p>Set constraints, then run discovery to rank local event + place combinations.</p>
+                <div className="discovery-controls-inner">{renderDiscoveryControls()}</div>
+              </aside>
 
-              {!discoveryLoading && !discoveryError && discoveryItems.length > 0 && (
-                <div className="pillars-grid discovery-cards">
-                  {discoveryItems.map((item, index) => {
-                    const eventObj = (item.event as Record<string, unknown> | undefined) || {}
-                    const placeObj = (item.place as Record<string, unknown> | undefined) || {}
-                    const eventName = String(eventObj.name || 'Local event')
-                    const placeName = String(placeObj.name || 'Nearby cafe')
-                    const cost = Number(item.estimated_cost ?? 0)
-                    const transit = Number(item.estimated_transit_minutes ?? 0)
-                    const crowd = String(item.crowd_level || 'medium')
-                    const score = Number(item.discovery_score ?? 0)
+              <div className="discovery-results">
+                {discoveryLoading && <p className="section-copy">Loading discovery recommendations...</p>}
+                {!discoveryLoading && discoveryError && <p className="section-copy">Discovery unavailable: {discoveryError}</p>}
 
-                    return (
-                      <article className="pillar-card" key={`discovery-${index}`}>
-                        <div className="pillar-visual planning-visual active">
-                          <p className="typing-line">{eventName}</p>
-                          <div className="planning-skeleton" />
-                          <div className="plan-mini-cards">
-                            <span>{placeName}</span>
-                            <span>₹{cost.toFixed(0)} est.</span>
-                            <span>{transit} min away</span>
+                {!discoveryLoading && !discoveryError && discoveryItems.length > 0 && (
+                  <div className="pillars-grid discovery-cards">
+                    {discoveryItems.map((item, index) => {
+                      const eventObj = (item.event as Record<string, unknown> | undefined) || {}
+                      const placeObj = (item.place as Record<string, unknown> | undefined) || {}
+                      const eventName = String(eventObj.name || 'Local event')
+                      const placeName = String(placeObj.name || 'Nearby cafe')
+                      const cost = Number(item.estimated_cost ?? 0)
+                      const transit = Number(item.estimated_transit_minutes ?? 0)
+                      const crowd = String(item.crowd_level || 'medium')
+                      const score = Number(item.discovery_score ?? 0)
+
+                      return (
+                        <article className="pillar-card discovery-card" key={`discovery-${index}`}>
+                          <div className="pillar-visual planning-visual active discovery-visual">
+                            <p className="typing-line discovery-event-line">{eventName}</p>
+                            <div className="planning-skeleton" />
+                            <div className="plan-mini-cards">
+                              <span>{placeName}</span>
+                              <span>INR {cost.toFixed(0)} est.</span>
+                              <span>{transit} min away</span>
+                            </div>
                           </div>
-                        </div>
 
-                        <h3>{placeName} + {eventName}</h3>
-                        <p>
-                          {`Coffee + local event (₹${cost.toFixed(0)}, ${transit} min away, ${crowd} crowd)`}
-                        </p>
-                        <p className="recruiter-note">Discovery score: {score.toFixed(1)} / 100</p>
-                      </article>
-                    )
-                  })}
-                </div>
-              )}
+                          <h3 className="discovery-card-title">{placeName} + {eventName}</h3>
+                          <p className="discovery-card-copy">
+                            {`Coffee + local event (INR ${cost.toFixed(0)}, ${transit} min away, ${crowd} crowd)`}
+                          </p>
+                          <p className="recruiter-note">Discovery score: {score.toFixed(1)} / 100</p>
+                        </article>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -758,7 +757,7 @@ export default function HomePage() {
             </div>
 
             <label className="control-label" htmlFor="budget-slider">
-              Budget: €{budgetValue} / €3,000
+              Budget: ₹{budgetValue} / ₹3,00,000
             </label>
             <input
               id="budget-slider"
@@ -791,14 +790,14 @@ export default function HomePage() {
           <div className="autopilot-reveal">
             <div className={`envelope-shell ${isEnvelopeOpened ? 'opened' : ''}`}>
               <div className="envelope-letter">
-                <h3>Your trip to Porto</h3>
+                <h3>Your trip to Kochi</h3>
                 <p>
-                  4 days · €{budgetValue} estimated · Safety 8.4 · 18°C clear
+                  4 days · ₹{budgetValue} estimated · Safety 8.4 · 18°C clear
                 </p>
                 <div className="reveal-cards">
-                  <span>Day 1: Ribeira + sunset cruise</span>
-                  <span>Day 2: Douro valley rail route</span>
-                  <span>Day 3: Foz coast + live fado</span>
+                  <span>Day 1: Fort Kochi + sunset cruise</span>
+                  <span>Day 2: Alleppey backwater rail link</span>
+                  <span>Day 3: Marine Drive + live music</span>
                 </div>
               </div>
             </div>
@@ -825,24 +824,26 @@ export default function HomePage() {
           <div className="tripcast-carousel">
             {[
               {
-                image: 'https://images.unsplash.com/photo-1480796927426-f609979314bd?auto=format&fit=crop&w=900&q=80',
-                title: 'Tokyo - Day 1',
+                image: 'https://images.pexels.com/photos/29685486/pexels-photo-29685486.jpeg',
+                title: 'Kochi - Day 1',
                 subtitle: 'Clear skies, 22°C · Low humidity',
               },
               {
-                image: 'https://images.unsplash.com/photo-1536098561742-ca998e48cbcc?auto=format&fit=crop&w=900&q=80',
-                title: 'Shibuya area',
+                image: 'https://images.pexels.com/photos/35356941/pexels-photo-35356941.jpeg',
+                title: 'Fort Kochi area',
                 subtitle: 'Safety 9.1 · Low crowd density · Arrive 8:30am',
               },
               {
-                image: 'https://images.unsplash.com/photo-1506157786151-b8491531f063?auto=format&fit=crop&w=900&q=80',
-                title: 'Fuji Rock Festival - Day 3',
-                subtitle: '¥12,000 · 2.4km from hotel',
+                image: 'https://images.pexels.com/photos/15308719/pexels-photo-15308719.jpeg',
+                title: 'HouseBoat ride through Backwaters - Day 3',
+                subtitle: '₹12,000 · 2.4km from hotel',
               },
-            ].map((card, idx) => (
+            ].map((card, idx) => {
+              const stackClass = idx === 0 ? 'stack-left' : idx === 1 ? 'stack-center' : 'stack-right'
+              return (
               <article
                 key={idx}
-                className={`tripcast-card ${idx === 0 ? 'rotate-left' : idx === 2 ? 'rotate-right' : ''} ${tripcastIndex === idx ? 'active' : ''}`}
+                className={`tripcast-card ${stackClass} ${tripcastIndex === idx ? 'active' : ''}`}
                 style={{ backgroundImage: `url('${card.image}')` }}
                 onClick={() => setTripcastFlipped(tripcastFlipped === idx ? null : idx)}
               >
@@ -851,7 +852,7 @@ export default function HomePage() {
                   <p>{card.subtitle}</p>
                 </div>
               </article>
-            ))}
+            )})}
           </div>
 
           <button className="ghost-link card-ghost" type="button">
@@ -884,7 +885,7 @@ export default function HomePage() {
             <div dangerouslySetInnerHTML={{ __html: '<!-- via POST /plan-trip -->' }} />
           </article>
           <article>
-            <h3>EUR{(stats.budget / 1000000).toFixed(1)}M</h3>
+            <h3>INR{(stats.budget / 1000000).toFixed(1)}M</h3>
             <p>in budget saved</p>
             <div dangerouslySetInnerHTML={{ __html: '<!-- via /budget/optimize -->' }} />
           </article>
@@ -918,7 +919,7 @@ export default function HomePage() {
         />
         <div className="final-cta-overlay" />
         <div className="final-inner">
-          <h2 className="hero-title">Your next adventure starts with one sentence.</h2>
+          <h2 className="hero-title" style={{ color: '#ffffff' }}>Your next adventure starts with one sentence.</h2>
           <button
             className="teal-button"
             type="button"

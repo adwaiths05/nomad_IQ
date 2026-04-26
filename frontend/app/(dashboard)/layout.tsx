@@ -2,6 +2,7 @@
 
 import { ProtectedRoute } from '@/components/protected-route'
 import { Sidebar } from '@/components/dashboard/sidebar'
+import { AmbientAiSheet } from '@/components/dashboard/ambient-ai-sheet'
 
 export default function DashboardLayout({
   children,
@@ -10,11 +11,12 @@ export default function DashboardLayout({
 }) {
   return (
     <ProtectedRoute>
-      <div className="flex h-screen bg-slate-50">
+      <div className="post-auth-shell post-auth-dashboard flex h-screen">
         <Sidebar />
-        <main className="flex-1 overflow-auto">
+        <main className="post-auth-main flex-1 overflow-auto">
           {children}
         </main>
+        <AmbientAiSheet />
       </div>
     </ProtectedRoute>
   )

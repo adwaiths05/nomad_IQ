@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { AuthProvider } from '@/lib/context/auth-context'
 import { ErrorBoundary } from '@/components/error-boundary'
+import { ThemeProvider } from '@/components/theme-provider'
 import './globals.css'
 
 const _geist = Geist({ subsets: ["latin"] });
@@ -37,13 +38,15 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className="font-sans antialiased">
-        <ErrorBoundary>
-          <AuthProvider>
-            {children}
-          </AuthProvider>
-        </ErrorBoundary>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <ErrorBoundary>
+            <AuthProvider>
+              {children}
+            </AuthProvider>
+          </ErrorBoundary>
+        </ThemeProvider>
         <Analytics />
       </body>
     </html>

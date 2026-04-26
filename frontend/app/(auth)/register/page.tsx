@@ -9,14 +9,25 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Spinner } from '@/components/ui/spinner'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, Eye, EyeOff } from 'lucide-react'
 
 const authCities = [
-  { city: 'Amalfi Coast', image: 'https://images.pexels.com/photos/358223/pexels-photo-358223.jpeg' },
-  { city: 'Kyoto', image: 'https://images.pexels.com/photos/6793716/pexels-photo-6793716.jpeg' },
-  { city: 'Santorini', image: 'https://images.pexels.com/photos/221532/pexels-photo-221532.jpeg' },
-  { city: 'Banff', image: 'https://images.unsplash.com/photo-1503614472-8c93d56e92ce?q=80&w=1111&auto=format&fit=crop' },
+  { city: 'Mumbai', image: 'https://images.pexels.com/photos/2404048/pexels-photo-2404048.jpeg' },
+  { city: 'Delhi', image: 'https://images.pexels.com/photos/7368048/pexels-photo-7368048.jpeg' },
+  { city: 'Jaipur', image: 'https://images.pexels.com/photos/1450353/pexels-photo-1450353.jpeg' },
+  { city: 'Bengaluru', image: 'https://images.pexels.com/photos/3888151/pexels-photo-3888151.jpeg' },
 ]
+
+function getErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error) return err.message
+  if (err && typeof err === 'object' && 'message' in err) {
+    const message = (err as { message?: unknown }).message
+    if (typeof message === 'string' && message.trim().length > 0) {
+      return message
+    }
+  }
+  return fallback
+}
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -28,6 +39,8 @@ export default function RegisterPage() {
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [cityIndex, setCityIndex] = useState(0)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -57,7 +70,7 @@ export default function RegisterPage() {
       localStorage.setItem('onboarding_completed', 'false')
       router.push('/onboarding/profile')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed. Please try again.')
+      setError(getErrorMessage(err, 'Registration failed. Please try again.'))
     } finally {
       setIsLoading(false)
     }
@@ -127,12 +140,22 @@ export default function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium">
-                Password
-              </label>
+              <div className="flex items-center justify-between">
+                <label htmlFor="password" className="text-sm font-medium">
+                  Password
+                </label>
+                <button
+                  type="button"
+                  className="text-xs text-slate-600 hover:text-slate-900 inline-flex items-center gap-1"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                >
+                  {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
               <Input
                 id="password"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -142,12 +165,22 @@ export default function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="confirmPassword" className="text-sm font-medium">
-                Confirm Password
-              </label>
+              <div className="flex items-center justify-between">
+                <label htmlFor="confirmPassword" className="text-sm font-medium">
+                  Confirm Password
+                </label>
+                <button
+                  type="button"
+                  className="text-xs text-slate-600 hover:text-slate-900 inline-flex items-center gap-1"
+                  onClick={() => setShowConfirmPassword((prev) => !prev)}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                  {showConfirmPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
               <Input
                 id="confirmPassword"
-                type="password"
+                type={showConfirmPassword ? 'text' : 'password'}
                 placeholder="••••••••"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}

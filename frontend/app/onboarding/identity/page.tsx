@@ -54,7 +54,7 @@ export default function OnboardingIdentityPage() {
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div>
               <p className="font-medium">Anti-tourist mode</p>
-              <p className="text-xs text-slate-500">De-prioritize crowded landmarks (#19)</p>
+              <p className="text-xs text-slate-500">De-prioritize crowded landmarks</p>
             </div>
             <Switch checked={antiTourist} onCheckedChange={setAntiTourist} />
           </div>

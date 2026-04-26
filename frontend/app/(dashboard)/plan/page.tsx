@@ -23,10 +23,10 @@ export default function PlanPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Autopilot NL input (#13)</CardTitle>
+          <CardTitle>Autopilot NL input</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Input value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Plan around rainy Tokyo + art museums + 5 days" />
+          <Input value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Plan around rainy Bengaluru + museums + 5 days" />
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             {['strict', 'moderate', 'light'].map((mode) => (
@@ -38,18 +38,18 @@ export default function PlanPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="rounded-lg border p-3">
-              <p className="text-sm font-medium mb-2">Reverse anchor planning (#15)</p>
+              <p className="text-sm font-medium mb-2">Reverse anchor planning</p>
               <Input value={anchor} onChange={(e) => setAnchor(e.target.value)} placeholder="Pin unmissable place/event" />
             </div>
             <div className="rounded-lg border p-3">
-              <p className="text-sm font-medium mb-2">Event-first flow (#17)</p>
+              <p className="text-sm font-medium mb-2">Event-first flow</p>
               <div className="flex items-center justify-between"><span className="text-sm text-slate-600">Plan around event cards</span><Switch checked={eventFirst} onCheckedChange={setEventFirst} /></div>
             </div>
           </div>
 
           <div className="rounded-lg border p-3 flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium">Anti-tourist mode (#19)</p>
+              <p className="text-sm font-medium">Anti-tourist mode</p>
               <p className="text-xs text-slate-500">Avoid high crowd-score venues</p>
             </div>
             <Switch checked={antiTourist} onCheckedChange={setAntiTourist} />
@@ -57,13 +57,13 @@ export default function PlanPage() {
 
           <div className="rounded-lg border p-3">
             <p className="text-sm font-medium">Nomad Autopilot budget</p>
-            <p className="text-xs text-slate-500 mb-2">€{budget[0]} target · date range and destination auto-selected</p>
+            <p className="text-xs text-slate-500 mb-2">₹{budget[0]} target · date range and destination auto-selected</p>
             <Slider value={budget} min={400} max={4000} step={50} disabled />
           </div>
 
           <div className="flex flex-wrap gap-2">
             <Button>Generate plan</Button>
-            <Button variant="outline" onClick={() => setPressureOpen((v) => !v)}>Stress test this plan (#21)</Button>
+            <Button variant="outline" onClick={() => setPressureOpen((v) => !v)}>Stress test this plan</Button>
           </div>
 
           {pressureOpen && (

@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
-import { CloudSun, TrendingUp, ArrowRight, Coins, BellRing, Sparkles } from 'lucide-react'
+import { CloudSun, ArrowRight, Coins, BellRing, Sparkles } from 'lucide-react'
 import { apiClient } from '../../../lib/api/client'
 import type { Trip, ItineraryItem } from '../../../lib/api/types'
 
@@ -19,8 +19,7 @@ export default function DashboardPage() {
   const [activeItinerary, setActiveItinerary] = useState<ItineraryItem[]>([])
   const [budgetPct, setBudgetPct] = useState(84)
   const [weatherLine, setWeatherLine] = useState('24°C • Clear')
-  const [budgetLine, setBudgetLine] = useState('€840 / €1,000')
-  const [exchangeLine, setExchangeLine] = useState('Rates changed: €1 = ¥162 (was ¥157). Estimate: +€43')
+  const [budgetLine, setBudgetLine] = useState('₹84,000 / ₹1,00,000')
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -47,7 +46,7 @@ export default function DashboardPage() {
             const actual = Number(budget.actual_spent || 0)
             const pct = estimated > 0 ? Math.min(100, Math.round((actual / estimated) * 100)) : 84
             setBudgetPct(pct)
-            setBudgetLine(`€${actual.toLocaleString()} / €${estimated.toLocaleString()}`)
+            setBudgetLine(`₹${actual.toLocaleString()} / ₹${estimated.toLocaleString()}`)
           } catch {
             const baseBudget = current.budget || 1000
             const utilization = Math.min(100, Math.max(35, Math.round((itinerary.length * 9.5) % 101)))
@@ -62,18 +61,6 @@ export default function DashboardPage() {
           } catch {
             // Keep default weather text.
           }
-        }
-
-        try {
-          const rates = await apiClient.integrations.exchangeRates('EUR')
-          const data = rates.data as Record<string, unknown> | undefined
-          const latest = data?.rates as Record<string, number> | undefined
-          const jpy = latest?.JPY
-          if (typeof jpy === 'number') {
-            setExchangeLine(`Rates changed: €1 = ¥${jpy.toFixed(0)}. Estimate impact available in budget.`)
-          }
-        } catch {
-          // Keep default exchange text.
         }
       } catch {
         // Keep graceful defaults when APIs are unavailable.
@@ -103,6 +90,10 @@ export default function DashboardPage() {
     setShowBriefing(false)
   }
 
+  const openAmbientAi = (prompt: string) => {
+    window.dispatchEvent(new CustomEvent('nomad-ai-open', { detail: { prompt } }))
+  }
+
   return (
     <div className="p-6 md:p-8 space-y-6">
       <div className="flex items-center justify-between gap-4">
@@ -110,14 +101,21 @@ export default function DashboardPage() {
           <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
           <p className="text-slate-600">Active intelligence for today&apos;s trip decisions</p>
         </div>
-        <Link href="/plan">
-          <Button className="bg-teal-600 hover:bg-teal-700">Open Trip Planner</Button>
-        </Link>
-      </div>
-
-      <div className="rounded-full border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900 flex items-center justify-between">
-        <span className="flex items-center gap-2"><TrendingUp className="h-4 w-4" /> {exchangeLine}</span>
-        <span className="text-xs font-medium">Feature #8</span>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() =>
+              openAmbientAi(
+                `What should I do next for ${activeTrip?.destination || activeTrip?.city || 'my trip'} with current budget and transit context?`
+              )
+            }
+          >
+            Ask AI in context
+          </Button>
+          <Link href="/plan">
+            <Button className="bg-teal-600 hover:bg-teal-700">Open Trip Planner</Button>
+          </Link>
+        </div>
       </div>
 
       {showBriefing && (
@@ -139,7 +137,7 @@ export default function DashboardPage() {
             </div>
             <div>
               <p className="text-slate-500">Crowd warning</p>
-              <p className="font-semibold">Shibuya 11:30 spike</p>
+              <p className="font-semibold">Mumbai local 11:30 spike</p>
             </div>
             <div>
               <p className="text-slate-500">Highlight</p>
@@ -179,7 +177,7 @@ export default function DashboardPage() {
           <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div>
               <p className="text-slate-500">Destination</p>
-              <p className="font-semibold">{activeTrip?.destination || 'Tokyo'}</p>
+              <p className="font-semibold">{activeTrip?.destination || 'Delhi'}</p>
             </div>
             <div>
               <p className="text-slate-500">Dates</p>
@@ -191,7 +189,7 @@ export default function DashboardPage() {
             </div>
             <div>
               <p className="text-slate-500">Next item</p>
-              <p className="font-semibold">{activeItinerary[0]?.activity || 'Senso-ji at 09:30'}</p>
+              <p className="font-semibold">{activeItinerary[0]?.activity || 'India Gate at 09:30'}</p>
             </div>
           </CardContent>
         </Card>

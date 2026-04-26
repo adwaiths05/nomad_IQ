@@ -48,7 +48,7 @@ export default function TripcastPage() {
 
         const budgetText =
           budget.status === 'fulfilled'
-            ? `Spend status: €${budget.value.actual_spent} / €${budget.value.estimated_total}.`
+            ? `Spend status: ₹${budget.value.actual_spent} / ₹${budget.value.estimated_total}.`
             : fallbackCards[3].body
 
         setCards([
@@ -66,20 +66,20 @@ export default function TripcastPage() {
   }, [params.tripId])
 
   return (
-    <div className="p-0 min-h-[calc(100vh-40px)] bg-slate-900 text-white">
-      <div className="p-6 text-sm text-slate-300">Tripcast • {params.tripId} (#11)</div>
+    <div className="p-0 min-h-[calc(100vh-40px)] post-auth-tripcast-root">
+      <div className="p-6 text-sm post-auth-tripcast-kicker">Tripcast • {params.tripId}</div>
       <div className="px-6 pb-6">
         <div className="grid grid-cols-4 gap-2 mb-4">
           {cards.map((_, i) => (
-            <div key={i} className="h-1 rounded-full bg-white/20 overflow-hidden">
-              <div className={`h-full bg-teal-300 ${i === index ? 'w-full transition-all duration-[5000ms]' : i < index ? 'w-full' : 'w-0'}`} />
+            <div key={i} className="h-1 rounded-full overflow-hidden post-auth-tripcast-track">
+              <div className={`h-full post-auth-tripcast-progress ${i === index ? 'w-full transition-all duration-[5000ms]' : i < index ? 'w-full' : 'w-0'}`} />
             </div>
           ))}
         </div>
-        <Card className="bg-white/10 border-white/20 text-white">
+        <Card className="overflow-hidden post-auth-tripcast-card">
           <CardContent className="pt-8 pb-8">
-            <h2 className="text-3xl font-bold mb-3">{cards[index].title}</h2>
-            <p className="text-lg text-slate-200">{cards[index].body}</p>
+            <h2 className="text-3xl font-bold mb-3 editorial-heading">{cards[index].title}</h2>
+            <p className="text-lg post-auth-tripcast-body">{cards[index].body}</p>
             <div className="mt-6 flex gap-2">
               <Button>Share image export</Button>
               <Button variant="outline">Start trip</Button>

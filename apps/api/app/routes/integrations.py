@@ -6,7 +6,6 @@ from pydantic import BaseModel, Field
 
 from app.integrations.external_apis import (
     ClimatiqClient,
-    ExchangeRateClient,
     EventbriteClient,
     MapsClient,
     MapsRoutesClient,
@@ -20,26 +19,6 @@ from app.integrations.mcp_client import FastMCPClient
 from app.config.settings import get_settings
 
 router = APIRouter(prefix="/integrations", tags=["integrations"])
-
-
-class TransportFlightsRequest(BaseModel):
-    city: str
-    start_date: date | None = None
-    end_date: date | None = None
-    origin_city: str | None = None
-    limit: int = 10
-    currency: str = "USD"
-
-
-class TransportNomadRequest(BaseModel):
-    origin_city: str | None = None
-    start_date: date | None = None
-    end_date: date | None = None
-    nights_in_dst_from: int | None = None
-    nights_in_dst_to: int | None = None
-    max_fly_duration: int | None = None
-    limit: int = 10
-    currency: str = "USD"
 
 
 class MapsCityRequest(BaseModel):
@@ -59,6 +38,14 @@ class MapsTransitRequest(BaseModel):
     origin_lng: float
     destination_lat: float
     destination_lng: float
+    mode: str = "walking"
+
+
+class TransportTrainSearchRequest(BaseModel):
+    origin_city: str
+    destination_city: str
+    journey_date: date | None = None
+    limit: int = 5
 
 
 class EventsSearchRequest(BaseModel):
@@ -82,10 +69,6 @@ class EventsDiscoveryRequest(BaseModel):
 
 class WeatherForecastRequest(BaseModel):
     city: str
-
-
-class FinanceExchangeRequest(BaseModel):
-    base_currency: str = "USD"
 
 
 class FinanceBaselineRequest(BaseModel):
@@ -121,32 +104,15 @@ class RagStoreRequest(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
-@router.post("/transport/search-flights")
-async def transport_search_flights(payload: TransportFlightsRequest) -> dict[str, Any]:
-    data = await TransportClient().search_flights(
-        city=payload.city,
-        start_date=payload.start_date,
-        end_date=payload.end_date,
+@router.post("/transport/search-trains")
+async def transport_search_trains(payload: TransportTrainSearchRequest) -> dict[str, Any]:
+    data = await TransportClient().search_trains(
         origin_city=payload.origin_city,
+        destination_city=payload.destination_city,
+        journey_date=payload.journey_date,
         limit=payload.limit,
-        currency=payload.currency,
     )
     return {"items": data, "count": len(data)}
-
-
-@router.post("/transport/search-nomad-deals")
-async def transport_search_nomad_deals(payload: TransportNomadRequest) -> dict[str, Any]:
-    data = await TransportClient().search_nomad_deals(
-        origin_city=payload.origin_city,
-        start_date=payload.start_date,
-        end_date=payload.end_date,
-        nights_in_dst_from=payload.nights_in_dst_from,
-        nights_in_dst_to=payload.nights_in_dst_to,
-        max_fly_duration=payload.max_fly_duration,
-        limit=payload.limit,
-        currency=payload.currency,
-    )
-    return {"data": data}
 
 
 @router.post("/maps/city-spots")
@@ -173,6 +139,7 @@ async def maps_transit_duration(payload: MapsTransitRequest) -> dict[str, Any]:
         origin_lng=payload.origin_lng,
         destination_lat=payload.destination_lat,
         destination_lng=payload.destination_lng,
+        mode=payload.mode,
     )
     return {"minutes": minutes}
 
@@ -343,16 +310,6 @@ async def events_discover(payload: EventsDiscoveryRequest) -> dict[str, Any]:
 async def weather_five_day_forecast(payload: WeatherForecastRequest) -> dict[str, Any]:
     data = await OpenWeatherClient().five_day_forecast(city=payload.city)
     return {"data": data}
-
-
-@router.post("/finance/exchange-rates")
-async def finance_exchange_rates(payload: FinanceExchangeRequest) -> dict[str, Any]:
-    data = await ExchangeRateClient().get_rates(payload.base_currency)
-    return {
-        "base_currency": payload.base_currency.upper(),
-        "data": data,
-        "rates": data.get("conversion_rates") if isinstance(data, dict) else None,
-    }
 
 
 @router.post("/finance/cost-baseline")

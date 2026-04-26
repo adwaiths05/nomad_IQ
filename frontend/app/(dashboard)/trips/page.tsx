@@ -69,7 +69,7 @@ export default function TripsPage() {
                 <Link href={`/trips/${trip.trip_id}/health`} className="text-teal-700 text-sm font-medium">Trip health</Link>
                 <Link href={`/trips/${trip.trip_id}/tripcast`} className="text-teal-700 text-sm font-medium">Tripcast</Link>
                 <Link href={`/trips/${trip.trip_id}/journal`} className="text-teal-700 text-sm font-medium">Journal</Link>
-                {tab !== 'active' && <Badge variant="secondary">Time Capsule draft (#25)</Badge>}
+                {tab !== 'active' && <Badge variant="secondary">Time Capsule draft</Badge>}
               </CardContent>
             </Card>
           ))}

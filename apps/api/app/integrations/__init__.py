@@ -1,7 +1,6 @@
 from app.integrations.cache import cache_get_json, cache_set_json
 from app.integrations.external_apis import (
     ClimatiqClient,
-    ExchangeRateClient,
     EventbriteClient,
     MapsClient,
     MapsRoutesClient,
@@ -13,7 +12,6 @@ from app.integrations.external_apis import (
 )
 
 __all__ = [
-    "ExchangeRateClient",
     "EventbriteClient",
     "MapsClient",
     "MapsRoutesClient",

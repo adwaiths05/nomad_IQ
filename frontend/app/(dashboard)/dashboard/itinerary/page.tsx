@@ -172,7 +172,7 @@ export default function ItineraryPage() {
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Location *</label>
                       <Input
-                        placeholder="e.g., Tokyo"
+                        placeholder="e.g., Delhi"
                         value={formData.location}
                         onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                         required

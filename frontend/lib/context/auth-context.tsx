@@ -17,6 +17,17 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function getErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error) return err.message;
+  if (err && typeof err === 'object' && 'message' in err) {
+    const message = (err as { message?: unknown }).message;
+    if (typeof message === 'string' && message.trim().length > 0) {
+      return message;
+    }
+  }
+  return fallback;
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,8 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const currentUser = await apiClient.auth.getCurrentUser();
           setUser(currentUser);
         }
-      } catch (err) {
-        console.error('Auth check failed:', err);
+      } catch {
         localStorage.removeItem('auth_token');
       } finally {
         setIsLoading(false);
@@ -49,7 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const response = await apiClient.auth.login(email, password);
       setUser(response.user);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Login failed';
+      const errorMessage = getErrorMessage(err, 'Login failed');
       setError(errorMessage);
       throw err;
     } finally {
@@ -65,7 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const response = await apiClient.auth.register(username, email, password);
         setUser(response.user);
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Registration failed';
+        const errorMessage = getErrorMessage(err, 'Registration failed');
         setError(errorMessage);
         throw err;
       } finally {

@@ -3,12 +3,14 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
+import { useTheme } from 'next-themes'
 import { useAuth } from '@/lib/context/auth-context'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
@@ -23,6 +25,8 @@ import {
   X,
   Home,
   User,
+  Moon,
+  Sun,
 } from 'lucide-react'
 
 const navItems = [
@@ -39,6 +43,7 @@ const navItems = [
 export function Sidebar() {
   const router = useRouter()
   const pathname = usePathname()
+  const { theme, setTheme } = useTheme()
   const { user, logout } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
 
@@ -54,12 +59,16 @@ export function Sidebar() {
     return pathname.startsWith(href)
   }
 
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark')
+  }
+
   return (
     <>
       {/* Mobile menu button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed top-4 left-4 z-40 p-2 rounded-lg bg-white border border-slate-200"
+        className="lg:hidden fixed top-4 left-4 z-40 p-2 rounded-lg bg-[var(--auth-panel)] border border-[var(--auth-border)] text-[var(--auth-text)]"
       >
         {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
       </button>
@@ -68,12 +77,12 @@ export function Sidebar() {
       <aside
         className={`${
           isOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:translate-x-0 fixed lg:relative w-64 h-screen bg-white border-r border-slate-200 transition-transform duration-300 z-30 flex flex-col`}
+        } post-auth-sidebar lg:translate-x-0 fixed lg:relative w-64 h-screen transition-transform duration-300 z-30 flex flex-col`}
       >
         {/* Logo */}
-        <div className="p-6 border-b border-slate-200 flex items-center space-x-2">
-          <Plane className="w-8 h-8 text-blue-600" />
-          <h1 className="text-xl font-bold text-slate-900">Nomadiq</h1>
+        <div className="p-6 border-b border-[var(--auth-border)] flex items-center space-x-2">
+          <Plane className="w-8 h-8 text-[var(--auth-teal)]" />
+          <h1 className="text-xl font-bold text-[var(--auth-heading)]">Nomadiq</h1>
         </div>
 
         {/* Navigation */}
@@ -83,8 +92,8 @@ export function Sidebar() {
             return (
               <Link key={item.href} href={item.href}>
                 <Button
-                  variant={isActive(item.href) ? 'default' : 'ghost'}
-                  className="w-full justify-start"
+                  variant="ghost"
+                  className={`w-full justify-start ${isActive(item.href) ? 'post-auth-nav-active' : 'post-auth-nav-item'}`}
                   onClick={() => setIsOpen(false)}
                 >
                   <Icon className="w-4 h-4 mr-2" />
@@ -96,15 +105,20 @@ export function Sidebar() {
         </nav>
 
         {/* User menu */}
-        <div className="p-4 border-t border-slate-200">
+        <div className="p-4 border-t border-[var(--auth-border)]">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="w-full justify-start">
+              <Button variant="ghost" className="w-full justify-start post-auth-nav-item">
                 <User className="w-4 h-4 mr-2" />
                 <span className="truncate">{user?.username || 'User'}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem onClick={toggleTheme}>
+                {theme === 'dark' ? <Sun className="w-4 h-4 mr-2" /> : <Moon className="w-4 h-4 mr-2" />}
+                <span>{theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout}>
                 <LogOut className="w-4 h-4 mr-2" />
                 <span>Logout</span>

@@ -21,13 +21,14 @@ services:
     environment:
       MCP_COMMAND: python /workspace/apps/mcp_servers/transport_server.py
       MCP_STDIO_FRAMING: ndjson
-      TRAVELPAYOUTS_API_TOKEN: ${TRAVELPAYOUTS_API_TOKEN:-}
-      TRAVELPAYOUTS_BASE_URL: ${TRAVELPAYOUTS_BASE_URL:-https://api.travelpayouts.com/v1}
+      INDIAN_RAILWAYS_API_KEY: ${INDIAN_RAILWAYS_API_KEY:-}
+      INDIAN_RAILWAYS_BASE_URL: ${INDIAN_RAILWAYS_BASE_URL:-}
+      OPENROUTESERVICE_API_KEY: ${OPENROUTESERVICE_API_KEY:-}
+      OPENROUTESERVICE_BASE_URL: ${OPENROUTESERVICE_BASE_URL:-https://api.openrouteservice.org}
+      OPENROUTESERVICE_BUS_PROFILE: ${OPENROUTESERVICE_BUS_PROFILE:-driving-car}
+      OPENROUTESERVICE_METRO_PROFILE: ${OPENROUTESERVICE_METRO_PROFILE:-driving-car}
+      OPENROUTESERVICE_WALKING_PROFILE: ${OPENROUTESERVICE_WALKING_PROFILE:-foot-walking}
       PHOTON_BASE_URL: ${PHOTON_BASE_URL:-https://photon.komoot.io}
-      OSRM_BASE_URL: ${OSRM_BASE_URL:-https://router.project-osrm.org}
-      AVIATIONSTACK_API_KEY: ${AVIATIONSTACK_API_KEY:-}
-      AVIATIONSTACK_BASE_URL: ${AVIATIONSTACK_BASE_URL:-https://api.aviationstack.com/v1}
-      OPENSKY_BASE_URL: ${OPENSKY_BASE_URL:-https://opensky-network.org/api}
     ports:
       - "9101:9000"
     volumes:
@@ -73,6 +74,7 @@ services:
     environment:
       APP_ENV: ${APP_ENV:-development}
       APP_DEBUG: ${APP_DEBUG:-true}
+      DB_INIT_ON_STARTUP: ${DB_INIT_ON_STARTUP:-false}
       DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL to your Neon PostgreSQL connection string}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-in-env}
@@ -126,6 +128,7 @@ services:
         condition: service_healthy
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}
+      INTERNAL_API_URL: ${INTERNAL_API_URL:-http://api:8000}
     volumes:
       - ./frontend:/app
       - frontend-node_modules:/app/node_modules

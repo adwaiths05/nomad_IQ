@@ -5,31 +5,25 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.engines.budget_engine import budget_pressure, estimate_daily_budget, suggest_cheaper_alternatives
-from app.integrations.cache import cache_get_json, cache_set_json
-from app.integrations.external_apis import ExchangeRateClient
 from app.models.budget import BudgetEstimate
 from app.models.cost_of_living import CityCostBaseline
 from app.models.trip import Trip
 
 
-def _fx_cache_key(base_currency: str) -> str:
-    return f"fx:{base_currency.upper()}"
-
-
 async def _resolve_city_baseline(db: AsyncSession, city: str) -> CityCostBaseline:
     row = await db.scalar(select(CityCostBaseline).where(CityCostBaseline.city == city))
     month_ago = datetime.utcnow() - timedelta(days=30)
-    if row and row.updated_at >= month_ago:
+    if row and row.updated_at >= month_ago and row.currency == "INR":
         return row
 
     # Strict strategy: do not call Numbeo/Apify from request path.
     baseline = {
         "city": city,
-        "currency": "USD",
-        "daily_food": 35.0,
-        "daily_transport": 12.0,
-        "daily_lodging": 65.0,
-        "daily_activities": 30.0,
+        "currency": "INR",
+        "daily_food": 800.0,
+        "daily_transport": 250.0,
+        "daily_lodging": 3500.0,
+        "daily_activities": 600.0,
         "source": "db_fallback",
         "raw": {"reason": "monthly_city_cost_missing"},
     }
@@ -62,43 +56,13 @@ async def _resolve_city_baseline(db: AsyncSession, city: str) -> CityCostBaselin
     return row
 
 
-async def _get_exchange_rates(base_currency: str) -> dict[str, float] | None:
-    global_cached = await cache_get_json("exchange_rates")
-    if isinstance(global_cached, dict):
-        nested = global_cached.get(base_currency.upper())
-        if isinstance(nested, dict) and isinstance(nested.get("conversion_rates"), dict):
-            return {k: float(v) for k, v in nested["conversion_rates"].items()}
-
-    cache_key = _fx_cache_key(base_currency)
-    cached = await cache_get_json(cache_key)
-    if isinstance(cached, dict) and isinstance(cached.get("conversion_rates"), dict):
-        return {k: float(v) for k, v in cached["conversion_rates"].items()}
-
-    payload = await ExchangeRateClient().get_rates(base_currency)
-    if payload and isinstance(payload.get("conversion_rates"), dict):
-        await cache_set_json(cache_key, payload, ttl_seconds=12 * 60 * 60)
-        return {k: float(v) for k, v in payload["conversion_rates"].items()}
-
-    return None
-
-
 async def _build_budget_breakdown(db: AsyncSession, trip: Trip, days: int) -> tuple[int, dict]:
     baseline = await _resolve_city_baseline(db=db, city=str(trip.city))
     local_daily_total = baseline.daily_food + baseline.daily_transport + baseline.daily_lodging + baseline.daily_activities
     raw_total = int(round(local_daily_total * days))
 
-    # Use exchange rates if available; otherwise keep baseline currency as-is.
-    rates = await _get_exchange_rates(baseline.currency)
-    usd_rate = rates.get("USD") if rates else None
-    if usd_rate and usd_rate > 0:
-        estimated_total = int(round(raw_total * usd_rate))
-        budget_currency = "USD"
-    else:
-        estimated_total = raw_total
-        budget_currency = baseline.currency
-
     breakdown = {
-        "currency": budget_currency,
+        "currency": baseline.currency,
         "city_baseline_currency": baseline.currency,
         "city_baseline_daily": {
             "lodging": float(baseline.daily_lodging),
@@ -112,7 +76,7 @@ async def _build_budget_breakdown(db: AsyncSession, trip: Trip, days: int) -> tu
         "transport": int(round(baseline.daily_transport * days)),
         "cost_source": baseline.source,
     }
-    return estimated_total, breakdown
+    return raw_total, breakdown
 
 
 async def estimate_budget(db: AsyncSession, trip_id: str) -> BudgetEstimate:
